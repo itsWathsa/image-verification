@@ -4,3 +4,7 @@ __pycache__/
 .models/
 .streamlit/secrets.toml
 cloud-upload.zip
+data/
+test results.txt
+evaluation-private/
+deployment-repo/

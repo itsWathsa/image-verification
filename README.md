@@ -8,6 +8,18 @@ This is a local web application: Python runs a Streamlit server on your PC and y
 
 ## Host the website without changing Windows security
 
+### Baseline reliability and evaluation
+
+Initial user-labeled diagnostic examples exposed both high AI scores on original camera photos and low scores on generated images. The class mapping was checked against the model configuration; it is not reversed. No improvement in accuracy has been demonstrated, and thresholds were not fitted to these examples. Treat the model as an experimental baseline unsuitable for authenticity decisions.
+
+Single-image results can now be downloaded as CSV. `evaluate.py` computes descriptive metrics from a CSV containing `filename,label,ai_score`, where labels are `camera` or `generated`:
+
+```powershell
+.\.venv\Scripts\python.exe evaluate.py evaluation-private\reported_scores.csv --output evaluation-private\baseline_metrics.json
+```
+
+The local six-image diagnostic files are under `evaluation-private/`; that directory, the input photos, and the original results text are excluded from Git. The Colab notebook includes a labeled diagnostic batch cell to rerun the six examples and download full-precision scores. Reference labels are used for evaluation only and never passed to the detector. A new independent dataset is needed before selecting thresholds or claiming improved accuracy.
+
 The app is prepared for **Streamlit Community Cloud**: the website and CPU model run together on a hosted Linux server. See [DEPLOYMENT.md](DEPLOYMENT.md) for GitHub upload and deployment steps. `cloud-upload.zip` contains the minimal deployment files. Hosting is not yet completed or verified; it requires your GitHub/Streamlit accounts.
 
 Cloud hosting uses the full `requirements.txt`. On Linux, the first analysis downloads the pinned model automatically; subsequent analyses reuse the cached model. Uploaded images are processed on the host. On local Windows, model downloads remain an explicit setup step and the existing Windows runtime block remains unresolved. Cloud hosting does not implement local edit detection or improve model accuracy.

@@ -1,6 +1,7 @@
 """Image details and an experimental pixel-based AI-generation baseline."""
 
 import io
+import csv
 import sys
 import warnings
 
@@ -117,15 +118,21 @@ def main():
     st.caption("This baseline was trained on Wikimedia/SDXL pairs. Other generators, screenshots, illustrations, resizing, and compression can produce misleading results. The first analysis downloads model weights and can take several minutes.")
     if st.button("Analyze image pixels", type="primary"):
         try:
-            from detector import analyze_pixels
+            from detector import analyze_pixels, MODEL_ID, MODEL_REVISION
 
             with st.spinner("Analyzing image pixels on CPU..."):
                 full_image, *_ = read_image(uploaded.getvalue(), full_resolution=True)
                 result = analyze_pixels(full_image, get_detector())
             st.write(f"**Model indication:** {result['signal']}")
             st.metric("AI-class model score", f"{result['ai_score']:.3f}")
+            report = io.StringIO(newline="")
+            writer = csv.DictWriter(report, fieldnames=["ai_score", "signal", "model", "revision", "authenticity", "local_editing"])
+            writer.writeheader()
+            writer.writerow({**result, "model": MODEL_ID, "revision": MODEL_REVISION,
+                             "authenticity": "inconclusive", "local_editing": "not implemented"})
+            st.download_button("Download model score (CSV)", data=report.getvalue(), file_name="image_score.csv", mime="text/csv")
             st.caption("0 = model's human class; 1 = model's artificial class. This is not a calibrated probability of authenticity. Exploratory bands: ≤0.10 camera-photo-like, ≥0.90 AI-like, otherwise inconclusive.")
-            st.warning("Authenticity conclusion: inconclusive. This baseline has not been evaluated on your target data. A low score does not establish camera origin or absence of edits.")
+            st.warning("Authenticity conclusion: inconclusive. Initial checks found both high AI scores on camera photos and low scores on generated images. This baseline is not reliable enough for authenticity decisions. A low score does not establish camera origin or absence of edits.")
         except Exception as error:
             show_analysis_error(error)
 
