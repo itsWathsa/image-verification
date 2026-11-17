@@ -60,6 +60,13 @@ def get_detector():
     return load_detector(download=True)
 
 
+@st.cache_resource
+def get_edit_detector():
+    from edit_detector import load_edit_detector
+
+    return load_edit_detector(download=True)
+
+
 def show_analysis_error(error):
     """Distinguish absent packages from installed packages that cannot import."""
     chain = []
@@ -128,7 +135,7 @@ def main():
             writer = csv.DictWriter(report, fieldnames=["ai_score", "signal", "model", "revision", "authenticity", "local_editing"])
             writer.writeheader()
             writer.writerow({**result, "model": MODEL_ID, "revision": MODEL_REVISION,
-                             "authenticity": "inconclusive", "local_editing": "not implemented"})
+                             "authenticity": "inconclusive", "local_editing": "not assessed in generation analysis"})
             st.download_button("Download model score (CSV)", data=report.getvalue(), file_name="image_score.csv", mime="text/csv")
             st.caption("Raw single-crop sigmoid score: low values favor camera-photo-like patterns; high values favor AI-like patterns. This is not a calibrated probability of authenticity. Exploratory bands: ≤0.10 camera-photo-like, ≥0.90 AI-like, otherwise inconclusive.")
             st.warning("Authenticity conclusion: inconclusive. This detector matched six known diagnostic examples, but has not been validated on an independent target dataset. A low score does not establish camera origin or absence of edits.")
@@ -136,8 +143,37 @@ def main():
             show_analysis_error(error)
 
     st.subheader("2. Evidence of local editing?")
-    st.write("**Inconclusive — edit localization is not yet implemented.** The AI-generation score does not answer this question.")
-    st.caption("Planned: evaluate TruFor for suspicious regions and its reliability map. C2PA signed history will be a separate provenance check.")
+    st.write("TruFor looks for pixel inconsistencies and produces an anomaly map and a separate reliability map. The AI-generation score is not used here.")
+    st.caption("CPU preview analyzes at most 384 pixels on the longest edge. Resizing may erase small edits or create misleading traces. First use downloads about 261 MB of weights; analysis can be slow.")
+    st.caption("TruFor by Guillaro et al., GRIP-UNINA (CVPR 2023). Informational/nonprofit use only. A suspicious region is not proof of editing.")
+    if st.button("Analyze possible edits", key="analyze_edits"):
+        try:
+            from edit_detector import analyze_edits, render_maps, SOURCE_REVISION
+
+            with st.spinner("Loading TruFor and examining pixel inconsistencies on CPU..."):
+                full_image, *_ = read_image(uploaded.getvalue(), full_resolution=True)
+                edit_result = analyze_edits(full_image, get_edit_detector())
+            overlay, reliability = render_maps(edit_result)
+            st.metric("TruFor whole-image anomaly score", f"{edit_result['score']:.3f}")
+            st.image(overlay, caption="Anomaly overlay: red = higher anomaly, blue = lower anomaly. Colors use a fixed 0–1 scale.")
+            st.image(reliability, caption="Reliability map: brighter = greater predicted reliability. Dark regions need more caution.")
+            st.caption(f"Analyzed size: {edit_result['analyzed_size'][0]} × {edit_result['analyzed_size'][1]} pixels. Maps correspond to this resized image, not original pixel resolution.")
+            st.warning("Edit assessment: inconclusive. These are experimental model outputs without validated decision thresholds. Compression, resizing, fully generated images, and ordinary photo processing can cause anomalies. A low anomaly score does not prove absence of edits.")
+            report = io.StringIO(newline="")
+            writer = csv.DictWriter(report, fieldnames=["model", "source_revision", "anomaly_score", "analyzed_width", "analyzed_height", "edit_assessment"])
+            writer.writeheader()
+            writer.writerow({"model": "TruFor", "source_revision": SOURCE_REVISION,
+                             "anomaly_score": edit_result["score"], "analyzed_width": edit_result["analyzed_size"][0],
+                             "analyzed_height": edit_result["analyzed_size"][1], "edit_assessment": "inconclusive"})
+            st.download_button("Download edit analysis (CSV)", data=report.getvalue(), file_name="edit_analysis.csv", mime="text/csv")
+            image_buffer = io.BytesIO()
+            overlay.save(image_buffer, format="PNG")
+            st.download_button("Download anomaly overlay", data=image_buffer.getvalue(), file_name="anomaly_overlay.png", mime="image/png")
+        except Exception as error:
+            st.error("Edit analysis unavailable — result: inconclusive. The generation detector remains separate.")
+            with st.expander("Edit analysis diagnostic details"):
+                st.code(f"{type(error).__name__}: {error}", language="text")
+    st.caption("C2PA signed history remains a separate planned provenance check.")
     st.subheader("File details")
     st.write(f"**Format:** {image_format}")
     st.write(f"**Dimensions:** {dimensions[0]} × {dimensions[1]} pixels (stored image)")

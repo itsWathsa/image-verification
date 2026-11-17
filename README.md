@@ -6,6 +6,7 @@ A Streamlit web app that previews JPEG/PNG images, displays file details, and ru
 
 - `app.py`: upload, preview, file details, analysis, and CSV score download.
 - `detector.py`: Detectra-OpenFake ONNX detector, pinned revision `c84565e`.
+- `edit_detector.py`, `trufor_vendor/`: experimental TruFor CPU localization and retained upstream licenses.
 - `requirements.txt`: complete CPU model and web-app dependencies for cloud hosting.
 - `requirements-basic.txt`: optional local file-details-only dependencies.
 - `.streamlit/config.toml`: upload limit and server settings.
@@ -13,11 +14,11 @@ A Streamlit web app that previews JPEG/PNG images, displays file details, and ru
 - `test_app.py`, `test_evaluate.py`: regression checks.
 - `DEPLOYMENT.md`: cloud deployment instructions.
 
-The current app uses the integrated ONNX detector. PyTorch, Transformers, and Colab are not needed. The earlier SDXL implementation remains in GitHub history.
+The generation question uses the integrated ONNX detector. The separate edit-localization question uses CPU PyTorch with TruFor. Transformers and Colab are not required. The earlier SDXL implementation remains in GitHub history.
 
 ## Interpretation
 
-Camera origin and local editing are separate questions. A camera photo can also be edited. Local edit detection is **not implemented**, and its result remains inconclusive.
+Camera origin and local editing are separate questions. A camera photo can also be edited. **Analyze possible edits** displays experimental TruFor anomaly/reliability maps, with the overall edit assessment remaining inconclusive until independent validation. See [TRUFOR.md](TRUFOR.md) for setup, preprocessing, tests, licensing, and limitations.
 
 The AI score is an uncalibrated model output, not a probability of authenticity. Exploratory bands are <=0.10 camera-photo-like, >=0.90 AI-like, and otherwise inconclusive. The integrated detector matched all six supplied diagnostic labels, including three Gemini images and three originals, without tuning the thresholds. Those known examples do not establish general accuracy. Do not rely on this experimental detector for authenticity decisions. Missing metadata never affects inference.
 
@@ -55,4 +56,4 @@ See [DEPLOYMENT.md](DEPLOYMENT.md). The repository is https://github.com/itsWath
 
 ## Later work
 
-Compare broader-generation detectors on independent labeled data; retain an inconclusive outcome. Evaluate TruFor for edit localization and C2PA for signed provenance as separate checks. Neither missing provenance nor missing EXIF proves AI generation or editing.
+Evaluate generation detection and TruFor localization on independent labeled data; retain an inconclusive outcome. C2PA signed provenance remains planned as a separate check. Neither missing provenance nor missing EXIF proves AI generation or editing.

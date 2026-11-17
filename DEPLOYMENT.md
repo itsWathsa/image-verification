@@ -7,7 +7,7 @@ Streamlit Community Cloud is a free hosting route requiring a GitHub account and
 ## Upload the prepared source
 
 1. Sign in to [GitHub](https://github.com/) and create a repository named `image-verification`. Choose your intended source visibility. A public repository exposes its uploaded code and files, so use only the prepared files below.
-2. Open the repository and select **Add file → Upload files**. Upload these root files: `app.py`, `detector.py`, `requirements.txt`, and `README.md`. Commit the upload.
+2. Open the repository and select **Add file → Upload files**. Include `app.py`, `detector.py`, `edit_detector.py`, `requirements.txt`, `README.md`, and the complete `trufor_vendor/` folder with licenses. Commit the upload.
 3. Create `.streamlit/config.toml` using **Add file → Create new file**, paste the contents of the local file with that name, and commit it. The folder is created automatically by the slash in its name.
 
 The project is already uploaded to https://github.com/itsWathsa/image-verification. For later changes, commit the updated app files to that repository. Confirm `.streamlit/config.toml` is present in the repository.
@@ -19,7 +19,7 @@ Do not upload `.venv`, `.models`, photos, tokens, or secrets. The model is downl
 1. Open [Streamlit Community Cloud](https://share.streamlit.io/) and sign in with GitHub. Grant access to the intended repository.
 2. Select **Create app**, then select the repository, branch (usually `main`), and main file **`app.py`**.
 3. Under **Advanced settings**, choose **Python 3.11**. No secrets are needed.
-4. Deploy and watch the build logs. ONNX Runtime, NumPy, and the model download client are installed from `requirements.txt`; installation can take several minutes.
+4. Deploy and watch the build logs. ONNX Runtime, NumPy, CPU PyTorch, and the model download client are installed from `requirements.txt`; installation can take several minutes.
 5. When the app opens, upload a JPEG/PNG and click **Analyze image pixels**. The first click downloads the pinned model weights and loads the model. Wait for it to finish. Later requests reuse the cached model while the process is alive.
 6. Use the app's Share/access settings to choose who can visit it. Verify the audience before sharing its URL. A private source repository does not itself establish the app's visitor permissions.
 
@@ -28,7 +28,7 @@ Do not upload `.venv`, `.models`, photos, tokens, or secrets. The model is downl
 - Upload an original JPEG phone photo and a known generated image. Both should show a preview and a score. No particular score is guaranteed.
 - Upload a PNG without EXIF. Its score must not depend on missing camera metadata.
 - Upload an invalid `.jpg`; expect a friendly error.
-- Confirm local editing still reads **not implemented / inconclusive**.
+- Click **Analyze possible edits**. The first use downloads approximately 261 MB of official weights. Confirm anomaly/reliability maps appear and the overall edit assessment remains inconclusive. See TRUFOR.md. If the host restarts or runs out of memory, do not treat that as evidence about the image.
 - If analysis fails, check Cloud logs and the diagnostic expander. A memory-related process restart is different from an invalid image or missing dependency.
 
 The user has verified that the previous deployed app produces model scores; the ONNX update still needs a cloud smoke test on Community Cloud. Local regression tests mock model inference; the successful Colab run does not establish hosting capacity or detection accuracy. This is a CPU demonstration: concurrent analyses and large images can exhaust free-host resources. Uploads are capped at 20 MB and 20 megapixels. If Cloud cannot accommodate the model, evaluate another host or a smaller model before considering paid hosting.

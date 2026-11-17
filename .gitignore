@@ -8,3 +8,4 @@ data/
 test results.txt
 evaluation-private/
 deployment-repo/
+.trufor-source/
