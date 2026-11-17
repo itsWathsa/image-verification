@@ -57,9 +57,7 @@ def read_image(data, full_resolution=False):
 def get_detector():
     from detector import load_detector
 
-    # Hosted Linux can fetch weights on first analysis; local Windows remains
-    # offline unless the user explicitly runs detector.py --download.
-    return load_detector(download=sys.platform == "linux")
+    return load_detector(download=True)
 
 
 def show_analysis_error(error):
@@ -114,8 +112,9 @@ def main():
 
     st.image(preview, caption="Preview (rotated using orientation metadata when available)")
     st.subheader("1. Camera-captured or fully AI-generated?")
-    st.write("Analyze pixels using an educational SDXL detector. Camera metadata is not used in the prediction.")
-    st.caption("This baseline was trained on Wikimedia/SDXL pairs. Other generators, screenshots, illustrations, resizing, and compression can produce misleading results. The first analysis downloads model weights and can take several minutes.")
+    st.write("Analyze pixels using the experimental Detectra-OpenFake detector. Camera metadata is not used in the prediction.")
+    st.caption("This detector covers multiple generators. Screenshots, illustrations, unfamiliar generators, resizing, and compression can still mislead it. The first analysis downloads about 30 MB of model weights.")
+    st.caption("Model: s-gehring/detectra-openfake ? revision c84565e ? educational/noncommercial use (CC-BY-NC-4.0). Single-center-crop inference; no multi-crop or author score scaling.")
     if st.button("Analyze image pixels", type="primary"):
         try:
             from detector import analyze_pixels, MODEL_ID, MODEL_REVISION
@@ -131,8 +130,8 @@ def main():
             writer.writerow({**result, "model": MODEL_ID, "revision": MODEL_REVISION,
                              "authenticity": "inconclusive", "local_editing": "not implemented"})
             st.download_button("Download model score (CSV)", data=report.getvalue(), file_name="image_score.csv", mime="text/csv")
-            st.caption("0 = model's human class; 1 = model's artificial class. This is not a calibrated probability of authenticity. Exploratory bands: ≤0.10 camera-photo-like, ≥0.90 AI-like, otherwise inconclusive.")
-            st.warning("Authenticity conclusion: inconclusive. Initial checks found both high AI scores on camera photos and low scores on generated images. This baseline is not reliable enough for authenticity decisions. A low score does not establish camera origin or absence of edits.")
+            st.caption("Raw single-crop sigmoid score: low values favor camera-photo-like patterns; high values favor AI-like patterns. This is not a calibrated probability of authenticity. Exploratory bands: ≤0.10 camera-photo-like, ≥0.90 AI-like, otherwise inconclusive.")
+            st.warning("Authenticity conclusion: inconclusive. This detector matched six known diagnostic examples, but has not been validated on an independent target dataset. A low score does not establish camera origin or absence of edits.")
         except Exception as error:
             show_analysis_error(error)
 

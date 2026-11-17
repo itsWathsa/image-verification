@@ -19,7 +19,7 @@ Do not upload `.venv`, `.models`, photos, tokens, or secrets. The model is downl
 1. Open [Streamlit Community Cloud](https://share.streamlit.io/) and sign in with GitHub. Grant access to the intended repository.
 2. Select **Create app**, then select the repository, branch (usually `main`), and main file **`app.py`**.
 3. Under **Advanced settings**, choose **Python 3.11**. No secrets are needed.
-4. Deploy and watch the build logs. CPU PyTorch and Transformers are installed from `requirements.txt`; installation can take several minutes.
+4. Deploy and watch the build logs. ONNX Runtime, NumPy, and the model download client are installed from `requirements.txt`; installation can take several minutes.
 5. When the app opens, upload a JPEG/PNG and click **Analyze image pixels**. The first click downloads the pinned model weights and loads the model. Wait for it to finish. Later requests reuse the cached model while the process is alive.
 6. Use the app's Share/access settings to choose who can visit it. Verify the audience before sharing its URL. A private source repository does not itself establish the app's visitor permissions.
 
@@ -31,8 +31,8 @@ Do not upload `.venv`, `.models`, photos, tokens, or secrets. The model is downl
 - Confirm local editing still reads **not implemented / inconclusive**.
 - If analysis fails, check Cloud logs and the diagnostic expander. A memory-related process restart is different from an invalid image or missing dependency.
 
-The user has verified that the deployed SDXL app produces model scores on Community Cloud. Local regression tests mock model inference; the successful Colab run does not establish hosting capacity or detection accuracy. This is a CPU demonstration: concurrent analyses and large images can exhaust free-host resources. Uploads are capped at 20 MB and 20 megapixels. If Cloud cannot accommodate the model, evaluate another host or a smaller model before considering paid hosting.
+The user has verified that the previous deployed app produces model scores; the ONNX update still needs a cloud smoke test on Community Cloud. Local regression tests mock model inference; the successful Colab run does not establish hosting capacity or detection accuracy. This is a CPU demonstration: concurrent analyses and large images can exhaust free-host resources. Uploads are capped at 20 MB and 20 megapixels. If Cloud cannot accommodate the model, evaluate another host or a smaller model before considering paid hosting.
 
 Uploads are processed on the hosting provider's server. The application does not explicitly write images to disk, call a remote image inference service, or maintain an image database. Hosting/session infrastructure still handles the uploaded data. Only upload images suitable for that environment. Model files may be downloaded again after the app sleeps, restarts, or rebuilds.
 
-Model: [Organika/sdxl-detector](https://huggingface.co/Organika/sdxl-detector), revision `b37fede`, educational/noncommercial use. Scores are experimental; overall authenticity remains inconclusive until target-data evaluation. Hosting does not improve model accuracy.
+Model: [s-gehring/detectra-openfake](https://huggingface.co/s-gehring/detectra-openfake), revision `c84565e`, noncommercial CC-BY-NC-4.0. Single-crop inference uses raw sigmoid scores; the author's score scaling and multi-crop procedure are not applied. Scores are experimental; overall authenticity remains inconclusive until target-data evaluation. Hosting does not improve model accuracy.

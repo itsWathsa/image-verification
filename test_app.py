@@ -8,12 +8,12 @@ from PIL import Image, UnidentifiedImageError
 from streamlit.testing.v1 import AppTest
 
 from app import get_detector, read_image
-from detector import analyze_pixels, interpret_score
+from detector import analyze_pixels, interpret_score, prepare_pixels, sigmoid
 
 
 class ImageTests(unittest.TestCase):
-    def test_hosted_model_download_and_windows_offline(self):
-        for platform, download in (("linux", True), ("win32", False)):
+    def test_model_download_cached_on_both_platforms(self):
+        for platform, download in (("linux", True), ("win32", True)):
             get_detector.clear()
             with patch("app.sys.platform", platform), patch("detector.load_detector", return_value=object()) as loader:
                 get_detector()
@@ -47,24 +47,36 @@ class ImageTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 interpret_score(value)
 
-    def test_metadata_does_not_enter_processor(self):
-        class StopBeforeInference(Exception):
-            pass
+    def test_pixels_metadata_and_logit_mapping(self):
+        import numpy as np
+        from types import SimpleNamespace
 
-        received = []
+        class Session:
+            def get_inputs(self):
+                return [SimpleNamespace(name="pixel_values")]
 
-        def processor(*, images, return_tensors):
-            received.append((images.tobytes(), dict(images.info)))
-            raise StopBeforeInference
+            def run(self, names, inputs):
+                self.pixels = inputs["pixel_values"]
+                return [np.array([[0.0]], dtype=np.float32)]
 
-        clean = Image.new("RGB", (40, 30), "blue")
+        session = Session()
+        clean = Image.new("RGB", (600, 400), "blue")
         tagged = clean.copy()
         tagged.info["exif"] = b"arbitrary camera metadata"
-        for image in (clean, tagged):
-            with self.assertRaises(StopBeforeInference):
-                analyze_pixels(image, (processor, None, None, {0: "artificial", 1: "human"}))
-        self.assertEqual(received[0], received[1])
-        self.assertEqual(received[0][1], {})
+        result = analyze_pixels(clean, session)
+        self.assertEqual(result, {"ai_score": .5, "signal": "Inconclusive"})
+        before = session.pixels.copy()
+        analyze_pixels(tagged, session)
+        np.testing.assert_array_equal(before, session.pixels)
+        self.assertEqual(before.shape, (1, 3, 384, 384))
+        self.assertEqual(before.dtype, np.float32)
+        self.assertAlmostEqual(float(before[0, 2, 0, 0]), (1 - .406) / .225, places=5)
+        self.assertEqual(sigmoid(1000), 1)
+        self.assertEqual(sigmoid(-1000), 0)
+        with self.assertRaises(ValueError):
+            sigmoid(float("nan"))
+        with self.assertRaises(ValueError):
+            prepare_pixels(Image.new("RGB", (1, 1000)))
 
     def test_streamlit_initial_render(self):
         app = AppTest.from_file("app.py").run(timeout=30)

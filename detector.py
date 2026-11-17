@@ -1,67 +1,83 @@
-"""Experimental pixel-only SDXL baseline; no EXIF fields enter the model."""
+"""Experimental pixel-only Detectra-OpenFake ONNX detector.
+
+Attribution and preprocessing: https://huggingface.co/s-gehring/detectra-openfake
+Weights: CC-BY-NC-4.0. No target-data accuracy or calibration is established.
+"""
 
 import argparse
 import math
 from pathlib import Path
 
-from PIL import Image
-
-MODEL_ID = "Organika/sdxl-detector"
-MODEL_REVISION = "b37fede"
+MODEL_ID = "s-gehring/detectra-openfake"
+MODEL_REVISION = "c84565e"
 CACHE_DIR = Path(__file__).resolve().parent / ".models"
 
 
-def load_detector(download=False):
-    # Check this explicitly: torch._dynamo can swallow its DLL ImportError and
-    # replace it with an unrelated-looking NP_SUPPORTED_MODULES import failure.
-    import numpy.fft  # noqa: F401
-    import torch
-    from transformers import AutoImageProcessor, AutoModelForImageClassification
+def sigmoid(value):
+    if not math.isfinite(value):
+        raise ValueError("Non-finite model output")
+    return 1 / (1 + math.exp(-value)) if value >= 0 else math.exp(value) / (1 + math.exp(value))
 
-    options = dict(
-        revision=MODEL_REVISION,
-        cache_dir=str(CACHE_DIR),
-        local_files_only=not download,
-        trust_remote_code=False,
-    )
-    processor = AutoImageProcessor.from_pretrained(MODEL_ID, use_fast=False, **options)
-    model = AutoModelForImageClassification.from_pretrained(
-        MODEL_ID, use_safetensors=True, **options
-    )
-    labels = {int(key): value.lower() for key, value in model.config.id2label.items()}
-    if set(labels.values()) != {"artificial", "human"}:
-        raise ValueError("Unexpected model labels; inference stopped.")
-    model.to("cpu").eval()
-    return processor, model, torch, labels
+
+def prepare_pixels(image):
+    import numpy as np
+    from PIL import Image
+
+    rgb = image.convert("RGB")
+    width, height = rgb.size
+    # Model card: shorter edge 440, bilinear; center crop 384; ImageNet norm.
+    if width <= height:
+        size = (440, int(440 * height / width))
+    else:
+        size = (int(440 * width / height), 440)
+    if max(size) > 16000:
+        raise ValueError("Image aspect ratio is too extreme for safe model preprocessing.")
+    resized = rgb.resize(size, Image.Resampling.BILINEAR)
+    left, top = round((size[0] - 384) / 2), round((size[1] - 384) / 2)
+    crop = resized.crop((left, top, left + 384, top + 384))
+    pixels = np.asarray(crop, dtype=np.float32) / np.float32(255)
+    mean = np.array([.485, .456, .406], dtype=np.float32)
+    std = np.array([.229, .224, .225], dtype=np.float32)
+    return np.ascontiguousarray(((pixels - mean) / std).transpose(2, 0, 1)[None])
+
+
+def load_detector(download=False):
+    import onnxruntime as ort
+    from huggingface_hub import hf_hub_download
+
+    path = hf_hub_download(MODEL_ID, "model.onnx", revision=MODEL_REVISION, cache_dir=str(CACHE_DIR), local_files_only=not download)
+    options = ort.SessionOptions()
+    options.intra_op_num_threads = 2
+    return ort.InferenceSession(path, sess_options=options, providers=["CPUExecutionProvider"])
+
+
+def analyze_pixels(image, session):
+    import numpy as np
+
+    inputs = session.get_inputs()
+    if len(inputs) != 1 or inputs[0].name != "pixel_values":
+        raise ValueError("Unexpected candidate input schema")
+    output = np.asarray(session.run(["logits"], {"pixel_values": prepare_pixels(image)})[0])
+    if output.size != 1:
+        raise ValueError("Unexpected candidate output schema")
+    logit = float(output.reshape(-1)[0])
+    score = sigmoid(logit)
+    return {"ai_score": score, "signal": interpret_score(score)}
 
 
 def interpret_score(score):
     if not math.isfinite(score) or not 0 <= score <= 1:
         raise ValueError("Invalid model score.")
-    # Exploratory bands only, not thresholds validated on the user's data.
-    if score >= 0.9:
+    if score >= .9:
         return "AI-like signal (experimental)"
-    if score <= 0.1:
+    if score <= .1:
         return "Camera-photo-like signal (experimental)"
     return "Inconclusive"
 
 
-def analyze_pixels(image, detector):
-    processor, model, torch, labels = detector
-    # Make a new RGB image so EXIF and other metadata cannot enter inference.
-    rgb = image.convert("RGB")
-    pixels = Image.frombytes("RGB", rgb.size, rgb.tobytes())
-    inputs = processor(images=pixels, return_tensors="pt")
-    with torch.inference_mode():
-        probabilities = model(**inputs).logits.softmax(dim=-1)[0]
-    ai_index = next(index for index, name in labels.items() if name == "artificial")
-    score = float(probabilities[ai_index].item())
-    return {"ai_score": score, "signal": interpret_score(score)}
-
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--download", action="store_true", help="Download pinned model files into .models")
+    parser.add_argument("--download", action="store_true")
     args = parser.parse_args()
     if args.download:
         load_detector(download=True)
