@@ -10,7 +10,7 @@ Streamlit Community Cloud is a free hosting route requiring a GitHub account and
 2. Open the repository and select **Add file → Upload files**. Upload these root files: `app.py`, `detector.py`, `requirements.txt`, and `README.md`. Commit the upload.
 3. Create `.streamlit/config.toml` using **Add file → Create new file**, paste the contents of the local file with that name, and commit it. The folder is created automatically by the slash in its name.
 
-For convenience, `cloud-upload.zip` contains only the deployment files in their correct layout. Extract it on your PC, then upload its contents, **not the ZIP itself**. GitHub's browser upload may omit hidden folders, so confirm `.streamlit/config.toml` exists using step 3.
+The project is already uploaded to https://github.com/itsWathsa/image-verification. For later changes, commit the updated app files to that repository. Confirm `.streamlit/config.toml` is present in the repository.
 
 Do not upload `.venv`, `.models`, photos, tokens, or secrets. The model is downloaded from Hugging Face by the deployed app when first needed. No Hugging Face token is required for this public model.
 
@@ -31,7 +31,7 @@ Do not upload `.venv`, `.models`, photos, tokens, or secrets. The model is downl
 - Confirm local editing still reads **not implemented / inconclusive**.
 - If analysis fails, check Cloud logs and the diagnostic expander. A memory-related process restart is different from an invalid image or missing dependency.
 
-This deployment has not yet been built or tested on Community Cloud. Local regression tests mock model inference; the successful Colab run does not establish hosting capacity or detection accuracy. This is a CPU demonstration: concurrent analyses and large images can exhaust free-host resources. Uploads are capped at 20 MB and 20 megapixels. If Cloud cannot accommodate the model, keep using Colab rather than upgrading to a paid plan without deciding on a budget.
+The user has verified that the deployed SDXL app produces model scores on Community Cloud. Local regression tests mock model inference; the successful Colab run does not establish hosting capacity or detection accuracy. This is a CPU demonstration: concurrent analyses and large images can exhaust free-host resources. Uploads are capped at 20 MB and 20 megapixels. If Cloud cannot accommodate the model, evaluate another host or a smaller model before considering paid hosting.
 
 Uploads are processed on the hosting provider's server. The application does not explicitly write images to disk, call a remote image inference service, or maintain an image database. Hosting/session infrastructure still handles the uploaded data. Only upload images suitable for that environment. Model files may be downloaded again after the app sleeps, restarts, or rebuilds.
 

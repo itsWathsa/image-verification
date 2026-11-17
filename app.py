@@ -72,7 +72,7 @@ def show_analysis_error(error):
     if any(getattr(item, "winerror", None) == 4551 or "Application Control" in str(item) for item in chain):
         message = "Windows Application Control blocked the model runtime. See README.md for administrator guidance."
     elif isinstance(error, ModuleNotFoundError) and error.name and len(chain) == 1:
-        message = f"A required Python module is unavailable: {error.name}. Install requirements-analysis.txt using this app's Python."
+        message = f"A required Python module is unavailable: {error.name}. Install requirements.txt using this app's Python."
     elif isinstance(error, ImportError):
         message = "The installed analysis packages could not load. This can be a version compatibility problem; it does not mean packages are missing. See the repair commands in README.md."
     elif isinstance(error, OSError):
