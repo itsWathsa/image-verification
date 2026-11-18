@@ -12,12 +12,6 @@ Only overlapping pixels are compared. A small fixed Gaussian blur reduces single
 
 The interface displays the aligned reference, target, a plain difference map, and an optional red overlay. Plain maps avoid confusing an image's original colors with added highlights. Lighting, compression, resampling, geometric mismatch, and reconstruction may all produce differences.
 
-## Bottle-removal example
-
-The supplied Gemini version differs broadly from its camera original. The current alignment finds 139 inlier matches, about 0.84-pixel median residual, and about 94.65% overlap. Approximately 63% of the overlap is marked with the fixed inspection settings. This is **widespread reference differences**, not precise localization of only the removed bottle. Matching features cover a limited part of the image, so the app explicitly warns that alignment extrapolation may contribute to the result. No threshold was tuned to make this case pass.
-
-The single-image TruFor detector scored the known edited version lower than its original. That failure remains documented; reference comparison does not retrospectively make the single-image detector correct.
-
 ## Checks
 
 Tests cover identical images, resized/JPEG-recompressed copies, a controlled splice, unrelated or featureless inputs, and invalid transforms. These establish implementation behavior, not general forensic accuracy. Local input files and derived comparison maps remain excluded from Git.

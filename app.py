@@ -12,7 +12,7 @@ from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_FILE_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_PIXELS = 20_000_000
-CHECKS = ("generation", "edits", "reference", "provenance")
+CHECKS = ("generation", "edits", "reference")
 
 
 def camera_details(image):
@@ -131,8 +131,8 @@ def csv_bytes(record):
 
 def generation_panel(data):
     from detector import MODEL_ID, MODEL_REVISION
-    st.subheader("AI-generation evidence")
-    st.write("Look for AI-like pixel patterns. This cannot reliably distinguish a fully generated image from a camera photo edited with AI.")
+    st.subheader("Was AI used to create this image?")
+    st.write("Check for signs of AI generation or AI-assisted editing.")
     if st.button("Analyze image pixels", type="primary", key="analyze_generation"):
         def analyze():
             from detector import analyze_pixels
@@ -142,23 +142,24 @@ def generation_panel(data):
         run_check("generation", analyze)
     result = saved_result("generation")
     if result is not None:
-        st.write(f"**Model indication:** {result['signal']}")
-        st.metric("AI-class model score", f"{result['ai_score']:.6f}")
-        st.caption("Raw model output, not a probability of authenticity. A low score does not prove camera origin; a high score does not prove the whole image was generated.")
-        st.warning("Authenticity conclusion: inconclusive. Independent target-data validation is still needed.")
-        st.download_button("Download model score (CSV)", csv_bytes({**result, "model": MODEL_ID,
-                           "revision": MODEL_REVISION, "authenticity": "inconclusive"}),
+        from conclusions import generation_conclusion
+        conclusion = generation_conclusion(result["ai_score"])
+        st.info(conclusion)
+        with st.expander("Score details"):
+            st.metric("AI detection score", f"{result['ai_score']:.6f}")
+            st.caption("Model score, not a probability. Low scores do not rule out AI-assisted editing.")
+        st.download_button("Download model score (CSV)", csv_bytes({"ai_score": result["ai_score"], "model": MODEL_ID,
+                           "revision": MODEL_REVISION, "conclusion": conclusion, "notice": "Automated estimate; may be incorrect"}),
                            file_name="image_score.csv", mime="text/csv", key="download_generation")
     with st.expander("Method and limitations"):
         st.write(f"Detectra-OpenFake | {MODEL_ID} | revision {MODEL_REVISION}. Educational/noncommercial CC-BY-NC-4.0.")
         st.write("Single center crop and raw sigmoid; no author score scaling or multi-crop procedure. Exploratory bands: <=0.10 low AI-like signal, >=0.90 AI-like signal, otherwise inconclusive. Metadata is not used.")
-        st.caption("First use downloads about 30 MB. New generators, screenshots, compression and ordinary editing can mislead the model. Six known diagnostic examples are not independent validation.")
+        st.caption("First use downloads about 30 MB. New generators, screenshots, compression and ordinary editing can affect the result. The decision bands have not been independently calibrated.")
 
 
 def edit_panel(data):
-    st.subheader("Possible local edits")
-    st.write("TruFor looks for pixel inconsistencies. Its result is independent of the AI-generation score.")
-    st.caption("A low anomaly score does not mean unedited: this model missed the known Gemini bottle-removal edit.")
+    st.subheader("Does this image show signs of editing?")
+    st.write("Check for inconsistencies and inspect areas that may have been modified.")
     if st.button("Analyze possible edits", key="analyze_edits"):
         def analyze():
             from edit_detector import analyze_edits
@@ -172,23 +173,28 @@ def edit_panel(data):
         from edit_detector import render_maps, SOURCE_REVISION
         overlay, reliability = render_maps(result)
         pure_map = Image.fromarray(np.round(result["map"] * 255).astype(np.uint8))
-        st.metric("TruFor whole-image anomaly score", f"{result['score']:.6f}")
+        from conclusions import edit_conclusion
+        conclusion = edit_conclusion(result["score"])
+        st.info(conclusion)
+        with st.expander("Score details"):
+            st.metric("Editing anomaly score", f"{result['score']:.6f}")
+            st.caption("Exploratory bands: <=0.10 no strong evidence detected; >=0.90 possible editing; otherwise unable to determine. These are presentation rules, not validated edit/no-edit thresholds.")
         first, second = st.columns(2)
         first.image(pure_map, caption="Anomaly map: brighter = higher anomaly. Fixed 0-1 scale.")
         second.image(reliability, caption="Reliability map: brighter = greater model-predicted reliability.")
         with st.expander("View anomaly overlay"):
             st.image(overlay, caption="Red/blue overlay blends with original colors; use the pure map for interpretation.")
         st.caption(f"Analyzed size: {result['analyzed_size'][0]} x {result['analyzed_size'][1]} pixels. Maps apply to this resized version.")
-        st.warning("Edit assessment: inconclusive. Maps and scores are experimental evidence, not proof of editing or absence of edits.")
+        st.caption("Highlighted regions are inspection aids. Compression and ordinary image processing can also cause inconsistencies.")
         st.download_button("Download edit analysis (CSV)", csv_bytes({"model": "TruFor", "source_revision": SOURCE_REVISION,
                            "anomaly_score": result["score"], "analyzed_width": result["analyzed_size"][0],
-                           "analyzed_height": result["analyzed_size"][1], "edit_assessment": "inconclusive"}),
+                           "analyzed_height": result["analyzed_size"][1], "conclusion": conclusion, "notice": "Automated estimate; edits may be missed"}),
                            file_name="edit_analysis.csv", mime="text/csv", key="download_edits")
         st.download_button("Download anomaly map", png_bytes(pure_map), file_name="anomaly_map.png", mime="image/png")
         st.download_button("Download reliability map", png_bytes(reliability), file_name="reliability_map.png", mime="image/png")
     with st.expander("TruFor method and limitations"):
         st.write("TruFor by Guillaro et al., GRIP-UNINA, CVPR 2023. Informational/nonprofit use only.")
-        st.write("CPU preview is limited to a 384-pixel longest edge. Resizing can erase small edits or introduce artifacts. Fully generated images, recompression and normal photo processing can cause anomalies. No edit/no-edit threshold has been validated.")
+        st.write("CPU preview is limited to a 384-pixel longest edge. Resizing can erase small edits or introduce artifacts. Fully generated images, recompression and normal photo processing can cause anomalies. The displayed conclusions use exploratory bands; no edit/no-edit threshold has been validated.")
         st.caption("First use downloads approximately 261 MB. A failed check is inconclusive; it does not affect other checks.")
 
 
@@ -211,7 +217,7 @@ def reference_panel(data):
                 run_check("reference", compare)
             result = saved_result("reference")
             if result is not None:
-                st.write(f"**{result.get('comparison_status', 'Reference differences')}**")
+                st.info("Differences detected compared with the supplied original." if result["changed_fraction"] > 0 else "No significant differences detected compared with the supplied original.")
                 first, second = st.columns(2)
                 first.image(result["aligned_reference"], caption="Aligned reference")
                 second.image(result["candidate"], caption="Version being examined")
@@ -230,44 +236,9 @@ def reference_panel(data):
         reset_for_reference(None)
 
 
-def provenance_panel(data, image_format):
-    st.subheader("Signed image history (C2PA)")
-    st.write("Check embedded Content Credentials, their signature and asset binding. Signed statements describe declared history; they do not prove the scene is true.")
-    st.caption("This uses the original file bytes. Missing credentials never imply AI generation or editing. External manifests, network trust lists and certificate-status fetching are disabled.")
-    if st.button("Check signed history", key="check_provenance"):
-        def check():
-            from provenance import check_provenance
-            with st.spinner("Inspecting embedded Content Credentials..."):
-                return check_provenance(data, image_format)
-        run_check("provenance", check)
-    result = saved_result("provenance")
-    if result is not None:
-        st.write(f"**{result['summary']}**")
-        if result["status"] in ("unavailable", "validation_failed", "inconclusive"):
-            st.warning("Provenance assessment is inconclusive. See verification details below.")
-        st.write(f"**Signer trust:** {result.get('signer_trust', 'unknown').replace('_', ' ')}")
-        if result.get("signer"):
-            signer = result["signer"]
-            st.text(f"Declared signer: {signer.get('common_name', 'Not stated')}")
-            st.caption("A certificate's displayed name is not independently verified identity when signer trust is not established.")
-        if result.get("actions"):
-            with st.expander("Declared actions (signer statements)"):
-                labels = {"c2pa.created": "Created", "c2pa.opened": "Opened existing content",
-                          "c2pa.edited": "Edited", "c2pa.resized": "Resized", "c2pa.placed": "Placed content"}
-                for action in result["actions"]:
-                    code = action.get("action", "Not stated")
-                    st.text(labels.get(code, code))
-                    if action.get("digitalSourceType"):
-                        st.text("Declared source type: " + action["digitalSourceType"].rsplit("/", 1)[-1])
-        with st.expander("Verification details and limitations"):
-            st.json(result)
-        st.download_button("Download signed-history report (JSON)", json.dumps(result, indent=2, ensure_ascii=False),
-                           file_name="signed_history.json", mime="application/json")
-
-
 def combined_report(image_format, dimensions):
     report = {"image_sha256": st.session_state["image_digest"], "format": image_format,
-              "stored_dimensions": dimensions, "overall_authenticity": "inconclusive", "checks": {}}
+              "stored_dimensions": dimensions, "notice": "Automated assessments may be incorrect and are not guarantees of authenticity.", "checks": {}}
     for name in CHECKS:
         state = st.session_state.get(name)
         if not state:
@@ -275,24 +246,27 @@ def combined_report(image_format, dimensions):
         elif not state["ok"]:
             report["checks"][name] = {"status": "unavailable", "diagnostic": state["diagnostic"]}
         else:
-            result = state["result"]
+            result = dict(state["result"])
+            from conclusions import generation_conclusion, edit_conclusion
+            if name == "generation":
+                result["conclusion"] = generation_conclusion(result["ai_score"])
+                result.pop("signal", None)
             if name == "edits":
-                result = {key: result[key] for key in ("score", "analyzed_size", "assessment") if key in result}
+                result = {key: result[key] for key in ("score", "analyzed_size") if key in result}
+                result["conclusion"] = edit_conclusion(result["score"])
             elif name == "reference":
                 result = {key: result[key] for key in ("changed_fraction", "overlap_fraction", "analysis_size", "alignment", "inspection_settings", "assessment") if key in result}
             status = "completed"
-            if name == "provenance" and result.get("status") in {"unavailable", "inconclusive", "validation_failed"}:
-                status = result["status"]
             report["checks"][name] = {"status": status, "result": result}
     return report
 
 
 def main():
-    st.set_page_config(page_title="Image verification lab", page_icon="??", layout="wide")
-    st.title("Image verification lab")
-    st.write("Examine image evidence with four independent checks.")
-    st.caption("JPEG or PNG | up to 20 MB and 20 megapixels | educational prototype")
-    st.info("A camera photo can also be edited. Model scores, reference differences and signed history answer different questions; no single check proves authenticity.")
+    st.set_page_config(page_title="Image Verification", page_icon=":material/image_search:", layout="wide")
+    st.title("Image Verification")
+    st.write("Check AI use, inspect possible edits, or compare an image with its original.")
+    st.caption("JPEG or PNG | up to 20 MB and 20 megapixels")
+    st.caption("Automated assessments may be incorrect. A camera photo can also be edited; no result guarantees authenticity.")
     uploaded = st.file_uploader("Choose the image to examine", type=["jpg", "jpeg", "png"])
     if uploaded is None:
         reset_for_image(None)
@@ -310,12 +284,11 @@ def main():
         return
     st.image(preview, caption="Preview; orientation metadata is applied when readable.", width=560)
     st.caption("Hosted uploads are processed on the hosting server. The app does not explicitly save uploaded images or send them to an external image inference service. Results are held in this session for the latest image; downloads remain visible after other checks run.")
-    tabs = st.tabs(["AI evidence", "Possible edits", "Compare original", "Signed history", "File details"])
+    tabs = st.tabs(["AI detection", "Edit detection", "Compare original", "File details"])
     with tabs[0]: generation_panel(data)
     with tabs[1]: edit_panel(data)
     with tabs[2]: reference_panel(data)
-    with tabs[3]: provenance_panel(data, image_format)
-    with tabs[4]:
+    with tabs[3]:
         st.subheader("File details")
         st.write(f"**Format:** {image_format}")
         st.write(f"**Dimensions:** {dimensions[0]} x {dimensions[1]} pixels (stored image)")
@@ -325,7 +298,7 @@ def main():
     st.divider()
     st.download_button("Download all current results (JSON)", json.dumps(combined_report(image_format, dimensions), indent=2, ensure_ascii=False),
                        file_name="image_evidence.json", mime="application/json", key="download_all")
-    st.caption("Only completed checks are included as results. Unrun and failed checks are recorded explicitly. Overall authenticity remains inconclusive.")
+    st.caption("Your report includes completed results and identifies any checks that were not run or could not finish.")
 
 
 if __name__ == "__main__":

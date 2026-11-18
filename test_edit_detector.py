@@ -51,4 +51,4 @@ class EditTests(unittest.TestCase):
                     self.assertIn("Edit analysis unavailable", app.error[0].value)
                 else:
                     self.assertEqual(app.metric[0].value, "0.700000")
-                    self.assertIn("Edit assessment: inconclusive", app.warning[0].value)
+                    self.assertTrue(any("Unable to determine whether this image was edited" in item.value for item in app.info))

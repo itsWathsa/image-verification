@@ -7,7 +7,7 @@ The second app question now has its own **Analyze possible edits** button. It ru
 - A reliability map: bright is higher predicted reliability; dark needs caution.
 - CSV score and plain anomaly/reliability PNG downloads, plus an optional on-screen overlay.
 
-The edit assessment remains **inconclusive**. No edit/no-edit threshold has been validated. A camera photo can be edited, a generated image can produce anomalies, and compression or normal image processing can mislead the model. A low score does not establish absence of edits.
+The application displays qualified assessments; no edit/no-edit threshold has been independently validated. A camera photo can be edited, a generated image can produce anomalies, and compression or normal image processing can mislead the model. A low score does not establish absence of edits.
 
 ## Runtime and preprocessing
 
@@ -23,22 +23,11 @@ To limit memory on the demo host, images are proportionally reduced to a maximum
 
 The inference architecture is vendored under `trufor_vendor/`, from official source revision `ae54475df6f41a491d7615100feb19263dec13f7`. Only imports and inference layer helpers were adapted. See `trufor_vendor/SOURCE.md` and retained license files. The timm training dependency is replaced with evaluation-only DropPath (identity during evaluation), tuple conversion, and PyTorch truncated-normal initialization; no topology or forward attention layers were replaced.
 
-## Validation so far
+## Result interpretation
 
-Real CPU inference and maps completed on four official samples at the capped resolution:
+The interface uses exploratory presentation bands: <=0.10 no strong editing evidence detected; >=0.90 possible editing detected; otherwise unable to determine. These are not calibrated or independently validated edit/no-edit thresholds. Outputs may be incorrect. A low score must not be presented as confirmed unedited.
 
-| Official sample | Whole-image anomaly score |
-|---|---:|
-| pristine1.jpg | 0.171 |
-| tampered1.png | 0.331 |
-| pristine2.jpg | 0.189 |
-| tampered2.png | 0.998 |
-
-This illustrates why a score below 0.5 cannot be presented as “unedited.” These samples are supplied by the model authors and do not constitute an independent accuracy test.
-
-A controlled local splice between two supplied camera images scored 0.998 versus 0.286 for its unedited source at the same analyzed size. This is a functionality check, not evidence of general accuracy. Derived images, maps, timing records, and scores remain private under `evaluation-private/trufor/`. Actual inference through Streamlit's edit button was also checked locally. Cloud capacity and inference after deployment still need verification.
-
-Next evaluate untouched camera photos, conventional edits, copy-move, splices, AI inpainting, resized/recompressed variants, and known pixel masks on an independent dataset. Report false positives on originals and localization precision/recall/IoU on edited regions. Keep each original and its derivatives in the same dataset split. Measure sensitivity to the 384-pixel cap before trusting localization. Do not tune thresholds on the official samples or the already-inspected local pair.
+Independent evaluation with untouched originals and known edit masks is required. Measure false positives, missed edits, localization precision/recall/IoU and sensitivity to the resolution cap. Do not tune thresholds to already-inspected cases.
 
 ## Attribution and license
 

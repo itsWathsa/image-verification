@@ -22,38 +22,25 @@ def edit_result():
 
 
 class SessionTests(unittest.TestCase):
-    def test_report_does_not_call_unavailable_provenance_completed(self):
-        import json
+    def test_report_contains_qualified_answers_without_removed_feature(self):
         from app import combined_report
-
-        states = {"image_digest": "test-digest", "provenance": {"ok": True,
-                  "result": {"status": "unavailable", "summary": "SDK could not load"}}}
+        states = {"image_digest": "test", "generation": {"ok": True, "result": {"ai_score": .98}}}
         with patch("app.st.session_state", states):
             report = combined_report("JPEG", (64, 64))
-        self.assertEqual(report["checks"]["provenance"]["status"], "unavailable")
-        self.assertEqual(report["checks"]["generation"]["status"], "not_run")
-        self.assertEqual(report["overall_authenticity"], "inconclusive")
-        json.dumps(report, allow_nan=False)
+        self.assertIn("Likely AI", report["checks"]["generation"]["result"]["conclusion"])
+        self.assertEqual(set(report["checks"]), {"generation", "edits", "reference"})
 
     def test_independent_results_survive_rerun_and_new_image_clears_them(self):
         current = [upload("blue")]
-        data_seen = []
-
-        def provenance(data, fmt):
-            data_seen.append((data, fmt))
-            return {"status": "unavailable", "summary": "SDK unavailable", "details": {}}
 
         with patch("streamlit.file_uploader", side_effect=lambda *args, **kw: current[0]), patch(
             "detector.load_detector", return_value=object()
         ), patch("detector.analyze_pixels", return_value={"ai_score": .0054, "signal": "Low AI-like signal"}) as generation, patch(
             "edit_detector.load_edit_detector", return_value=object()
-        ), patch("edit_detector.analyze_edits", return_value=edit_result()) as editing, patch(
-            "provenance.check_provenance", side_effect=provenance
-        ):
+        ), patch("edit_detector.analyze_edits", return_value=edit_result()) as editing:
             app = AppTest.from_file("app.py").run(timeout=30)
             app.button(key="analyze_generation").click().run(timeout=30)
             app.button(key="analyze_edits").click().run(timeout=30)
-            app.button(key="check_provenance").click().run(timeout=30)
             app.run(timeout=30)  # same rerun triggered by a download or panel action
             self.assertFalse(app.exception)
             self.assertEqual(len(app.metric), 2)
@@ -61,14 +48,11 @@ class SessionTests(unittest.TestCase):
             self.assertEqual(app.metric[1].value, "0.200000")
             self.assertEqual(generation.call_count, 1)
             self.assertEqual(editing.call_count, 1)
-            self.assertEqual(data_seen, [(current[0].getvalue(), "PNG")])
-            self.assertEqual(app.session_state["provenance"]["result"]["status"], "unavailable")
             current[0] = upload("red")
             app.run(timeout=30)
             self.assertFalse(app.metric)
             self.assertNotIn("generation", app.session_state)
             self.assertNotIn("edits", app.session_state)
-            self.assertNotIn("provenance", app.session_state)
             current[0] = None
             app.run(timeout=30)
             self.assertFalse(app.exception)

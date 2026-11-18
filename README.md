@@ -1,23 +1,18 @@
-# Image verification lab
+# Image Verification
 
-A Streamlit web app for inspecting image evidence. Users of the hosted website only need a browser. VS Code is for development; Colab is not required.
+A Python web application for AI-use assessment, edit inspection, and original-image comparison.
 
-## Four independent checks
+## Features
 
-| Tab | What it does | What it cannot establish |
-|---|---|---|
-| AI evidence | Detectra-OpenFake scores AI-like pixel patterns | Camera origin, fully generated versus AI-edited, or authenticity |
-| Possible edits | TruFor displays anomaly and reliability maps | Proof of editing or proof an image is unedited |
-| Compare original | Aligns a supplied reference and highlights pixel differences | The reference's authenticity, editing intent, or an exact edited-area percentage |
-| Signed history | C2PA checks embedded signature and asset binding; signer trust is separate | Truth of the scene or completeness of recorded history |
+- **AI detection:** a qualified answer about signs of AI generation or AI-assisted editing.
+- **Edit detection:** a qualified answer about possible editing, with anomaly and reliability maps.
+- **Compare original:** align a supplied original and highlight differences.
+- **File details:** preview, format, stored dimensions, and available camera metadata.
+- Persistent session results, CSV/PNG downloads, and a combined JSON report.
 
-File format, stored dimensions, and optional camera EXIF fields are under **File details**. Missing EXIF and missing Content Credentials never produce an AI or edited label. A camera photo can also be edited. Overall authenticity stays inconclusive; there is no single combined fake/real verdict.
+Automated assessments may be incorrect. Uncertain cases remain unable to determine. Missing metadata never triggers an AI or edited label. The application does not provide a definitive forensic verdict.
 
-Scores use six decimal places to avoid showing a value close to one as 100% certainty. Results survive other checks, panel changes, and downloads. Replacing the main image clears all prior results; replacing the reference clears only its comparison. Results are held for the latest image in the current session, not cached globally per uploaded image. The combined JSON report records completed, unrun, and failed checks separately.
-
-## Run on Windows
-
-Open PowerShell and run one command per line:
+## Windows setup
 
 ```powershell
 cd "C:\Users\Hasini\OneDrive\Desktop\AASL\image-verification"
@@ -26,35 +21,24 @@ py -m venv .venv
 .\.venv\Scripts\python.exe -m streamlit run app.py
 ```
 
-No activation or PowerShell execution-policy change is needed. Visit `http://localhost:8501` if the browser does not open. Stop with Ctrl+C. To run later, repeat the `cd` and final command. `requirements-basic.txt` supports preview/file details without the model runtimes; missing optional dependencies produce an unavailable/inconclusive result in the affected panel.
+Open http://localhost:8501 if needed. Stop with Ctrl+C. Activation is not required. Use requirements-basic.txt only for preview/file details. Full dependencies are needed for analysis. Supported content: JPEG/PNG, up to 20 MiB and 20 megapixels.
 
-The first generation check downloads about 30 MB; the first edit check downloads approximately 261 MB. Model weights are cached in `.models/`, not committed to Git. TruFor uses CPU PyTorch; the generation check uses ONNX Runtime. Native C2PA is installed with the full requirements. An initial Windows DLL block was observed, but subsequent native verification succeeded without a security-setting change. If a runtime cannot load, that panel reports unavailable while other checks remain usable. Real tests validated the official signed fixture, rejected a tampered copy with a hash mismatch, and handled an unsigned JPEG. The Linux native-provenance workflow independently repeats these checks; inspect its actual result.
+## Result interpretation
 
-## Test with a phone photo
+AI scores <=0.10 indicate likely not fully AI-generated, but do not exclude AI-assisted editing. Scores >=0.90 indicate likely AI-generated or AI-edited. Intermediate scores cannot determine AI use. Scores are not calibrated probabilities.
 
-Copy an original JPEG from your phone using USB or another method that preserves the file. HEIC is unsupported. Upload it, preview it, and run each check independently. Camera fields may be unavailable. Try a PNG screenshot and invalid text renamed `.jpg` to check graceful errors.
+For TruFor, <=0.10 is displayed as no strong editing evidence detected; >=0.90 as possible editing detected; intermediate scores cannot determine editing. These are exploratory presentation bands, not independently validated edit/no-edit thresholds. Low scores may miss edits. Maps analyze a maximum 384-pixel edge and may lose small details.
 
-For the bottle-removal example, upload the Gemini version as the main image and `raw1.jpg` as its reference in **Compare original**. Expect broad differences, not a guaranteed outline of only the removed bottle. See [REFERENCE_COMPARISON.md](REFERENCE_COMPARISON.md).
+Reference comparison finds differences relative to the supplied original. Marked area is not an editing probability. Lighting, compression, reconstruction, and alignment error can contribute. Weak alignment produces an inconclusive result.
 
-## Validation and limits
+## Tests and deployment
 
 ```powershell
 .\.venv\Scripts\python.exe -m unittest -v
-.\.venv\Scripts\python.exe evaluate.py evaluation-private\reported_scores.csv --output evaluation-private\baseline_metrics.json
 ```
 
-`evaluate.py` accepts `filename,label,ai_score` with labels `camera` or `generated`; these are reference labels, not detector inputs. Do not put mixed/AI-edited photos into a fully-generated-versus-camera benchmark without defining the target carefully. Record edit presence separately and use masks for localization evaluation. Keep originals and their derivatives together in dataset splits. Thresholds have not been tuned on the six known examples.
+See DEPLOYMENT.md for hosting. Source: https://github.com/itsWathsa/image-verification. The app runs models on the server; the browser needs no local Python or Colab. The latest source requires a cloud rebuild and browser smoke check after changes.
 
-The ONNX detector reproduced the six supplied diagnostic labels, but that does not establish general accuracy. TruFor missed the known Gemini bottle-removal edit (edited score 0.090 versus original 0.440), so low anomaly responses must never be called unedited. Reference comparison adds a separate source of evidence; it does not fix that detector failure. New independent labeled images and edited pairs are needed to evaluate errors, inconclusive rate, and localization performance.
+Inputs and results stay under data/ and evaluation-private/ locally and are excluded from Git. The app does not explicitly save hosted uploads or call an external image-inference API. Model weights download on first use. Review reports before sharing sensitive information.
 
-Current regression checks cover input handling, score mapping, independent failures, session/result invalidation, reference alignment, and C2PA validation-report semantics. Real ONNX/TruFor inference has run locally; the user also confirmed cloud outputs for both. Native C2PA signed/tampered/unsigned fixture tests also passed locally; cloud execution still requires verification after this update. Regression tests and the small diagnostic sample are not scientific accuracy validation.
-
-## Hosting, data, and licenses
-
-See [DEPLOYMENT.md](DEPLOYMENT.md). Source: https://github.com/itsWathsa/image-verification. Hosted app: https://image-verification-ki8pr7csrq4zmj979arh8h.streamlit.app/.
-
-Uploads are processed on the server running the app. The application does not explicitly save uploaded photos or call an external image inference API. Model files are downloaded from Hugging Face and the official TruFor host. C2PA reads original uploaded bytes and disables remote manifests, online revocation queries, and other network requests. Reports may contain embedded signer statements; treat those as claims rather than facts. Clear downloads/outputs before sharing private information. Upload limits are 20 MB and 20 megapixels.
-
-`data/`, `evaluation-private/`, the original test-results text, virtual environments, and model caches are excluded from Git. Reference comparison uses OpenCV. Detectra-OpenFake weights are CC-BY-NC-4.0 (s-gehring/OpenFake/TensorFold/Community Forensics attribution in the model card). TruFor is informational/nonprofit under its retained upstream licenses. This is an educational prototype.
-
-Implementation details: [TRUFOR.md](TRUFOR.md), [PROVENANCE.md](PROVENANCE.md), [REFERENCE_COMPARISON.md](REFERENCE_COMPARISON.md).
+Methods and licenses: Detectra-OpenFake c84565e (CC-BY-NC-4.0); TruFor ae54475df6f41a491d7615100feb19263dec13f7 (informational/nonprofit license retained under trufor_vendor/). OpenCV performs reference alignment. See TRUFOR.md, REFERENCE_COMPARISON.md and SYSTEM_REPORT.md.
