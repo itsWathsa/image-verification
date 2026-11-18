@@ -41,6 +41,8 @@ Reference comparison finds differences relative to the supplied original. Marked
 
 See DEPLOYMENT.md for hosting. Source: https://github.com/itsWathsa/image-verification. The app runs models on the server; the browser needs no local Python or Colab. The latest source requires a cloud rebuild and browser smoke check after changes.
 
+For the separate CIFAKE training and evaluation experiment, see [CIFAKE.md](CIFAKE.md). Its candidate model is evaluated before any promotion to general-use detection. Dataset and checkpoint artifacts stay in the ignored `.models/cifake/` cache; website uploads are not training data.
+
 Inputs and results stay under data/ and evaluation-private/ locally and are excluded from Git. The app does not explicitly save hosted uploads or call an external image-inference API. Model weights download on first use. Review reports before sharing sensitive information.
 
 Methods and licenses: Detectra-OpenFake c84565e (CC-BY-NC-4.0); TruFor ae54475df6f41a491d7615100feb19263dec13f7 (informational/nonprofit license retained under trufor_vendor/). OpenCV performs reference alignment. See TRUFOR.md, REFERENCE_COMPARISON.md and SYSTEM_REPORT.md.

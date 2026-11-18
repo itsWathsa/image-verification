@@ -29,7 +29,21 @@ def evaluate(rows):
     decided = [(label, score) for label, score in parsed if score <= .1 or score >= .9]
     correct = sum(label == (score >= .9) for label, score in decided)
     ratio = lambda a, b: a / b if b else None
-    auc = ratio(sum((p > n) + .5 * (p == n) for p in positives for n in negatives), len(positives) * len(negatives))
+    # Rank/group ties in O(n log n), rather than comparing every positive to
+    # every negative (100 million pairs on CIFAKE's official test split).
+    ordered = sorted(parsed, key=lambda item: item[1])
+    concordant, negatives_before, position = 0., 0, 0
+    while position < len(ordered):
+        end = position + 1
+        while end < len(ordered) and ordered[end][1] == ordered[position][1]:
+            end += 1
+        group = ordered[position:end]
+        group_positive = sum(label for label, _ in group)
+        group_negative = len(group) - group_positive
+        concordant += group_positive * (negatives_before + .5 * group_negative)
+        negatives_before += group_negative
+        position = end
+    auc = ratio(concordant, len(positives) * len(negatives))
     return {
         "count": len(parsed), "generated_count": len(positives), "camera_count": len(negatives),
         "forced_cutoff": .5,
@@ -41,7 +55,7 @@ def evaluate(rows):
         "coverage": ratio(len(decided), len(parsed)),
         "inconclusive_count": len(parsed) - len(decided),
         "accuracy_among_decided": ratio(correct, len(decided)),
-        "note": "Descriptive results only; no thresholds or weights fitted. Not a generalization estimate for a small convenience sample.",
+        "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
     }
 
 

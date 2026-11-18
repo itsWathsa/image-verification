@@ -4,6 +4,17 @@ from evaluate import evaluate
 
 
 class EvaluationTests(unittest.TestCase):
+    def test_rank_auc_matches_pairwise_with_ties(self):
+        import random
+        rng = random.Random(17)
+        for _ in range(20):
+            positives = [rng.choice([0, .2, .5, .9, 1]) for _ in range(10)]
+            negatives = [rng.choice([0, .2, .5, .9, 1]) for _ in range(13)]
+            rows = ([{"label": "generated", "ai_score": score} for score in positives]
+                    + [{"label": "camera", "ai_score": score} for score in negatives])
+            expected = sum((p > n) + .5 * (p == n) for p in positives for n in negatives) / 130
+            self.assertAlmostEqual(evaluate(rows)["roc_auc"], expected)
+
     def test_confusion_and_abstention(self):
         rows = [{"label": label, "ai_score": score} for label, score in
                 [("generated", .99), ("generated", .14), ("generated", .29),

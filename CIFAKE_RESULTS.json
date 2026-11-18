@@ -1,0 +1,320 @@
+{
+  "status": "not_promoted",
+  "decision": "Improved CIFAKE benchmark performance but regressed on known target diagnostics; retain current general-upload detector.",
+  "data_audit": {
+    "dataset": "CIFAKE",
+    "revision": "e112a942abaecd02b6b1f6f646c807d56be8fb62",
+    "archive_url": "https://codeload.github.com/jordan-bird/CIFAKE-Real-and-AI-Generated-Synthetic-Images/zip/e112a942abaecd02b6b1f6f646c807d56be8fb62",
+    "archive_sha256": "df9a280df27336041a13812435261668ca151562155cbfff7e655dbeeae5516c",
+    "seed": 20261118,
+    "class_mapping": {
+      "REAL": 0,
+      "FAKE": 1
+    },
+    "official_counts": {
+      "train/0": 50000,
+      "train/1": 50000,
+      "test/0": 10000,
+      "test/1": 10000
+    },
+    "conflicting_records_removed": 0,
+    "exact_duplicate_records_removed": 1336,
+    "partitions": {
+      "train": {
+        "count": 88832,
+        "generated": 43832,
+        "real": 45000,
+        "manifest_sha256": "e47794bff92e89e4ca799f442aa1df4e881916ac84337cdfc4c1dc8529cf6218"
+      },
+      "validation": {
+        "count": 9870,
+        "generated": 4870,
+        "real": 5000,
+        "manifest_sha256": "49b8d0c60453a94579c8ba73edff90e4aa065580b530c3264283a12d306ea536"
+      },
+      "test": {
+        "count": 19962,
+        "generated": 9962,
+        "real": 10000,
+        "manifest_sha256": "34d78ff156769a233b6f9880f07360dc87705b32e59fd920bcd6b50048d724e0"
+      }
+    },
+    "note": "Validation sampled only from official training pool. Exact RGB duplicates grouped; conflicts removed; official test takes precedence over train overlap. Near duplicates and semantic-family leakage have not been exhaustively audited."
+  },
+  "environment": {
+    "python": "3.14.4",
+    "platform": "Windows-11-10.0.26200-SP0",
+    "torch": "2.10.0+cpu",
+    "numpy": "2.5.5",
+    "pillow": "12.3.0",
+    "device": "cpu",
+    "threads": 2,
+    "architecture_sha256": "7e005a3579fa7ae0e9a09fbfd95958ad45fcfb0d9b20e96fd1608181d8033c50",
+    "experiment_source_sha256": "99a490667f7bb23481a4d61cb098f3ddaca6102c731e5732dde03a89a5440da9",
+    "training_source_sha256": "99a490667f7bb23481a4d61cb098f3ddaca6102c731e5732dde03a89a5440da9",
+    "current_experiment_source_sha256": "ebe3a6826be37e5cd5202cd16f3048931d861302fff05d317d933f0266898e23",
+    "post_training_changes": "Cached baseline loader and target-report metrics added after training; training algorithm unchanged."
+  },
+  "training": {
+    "architecture": "cifake-cnn-v1",
+    "seed": 20261118,
+    "epochs_requested": 15,
+    "batch_size": 256,
+    "threads": 2,
+    "optimizer": "AdamW lr=0.001 weight_decay=0.0001; cosine LR schedule",
+    "selection": "lowest validation BCE; patience 4; no test-based tuning",
+    "history": [
+      {
+        "epoch": 1,
+        "train_loss": 0.41705881544423723,
+        "validation_loss": 0.2991916606249901,
+        "validation_accuracy": 0.8731509625126647,
+        "seconds": 40.768
+      },
+      {
+        "epoch": 2,
+        "train_loss": 0.26921167072198576,
+        "validation_loss": 0.2651552206114795,
+        "validation_accuracy": 0.8934143870314083,
+        "seconds": 42.734
+      },
+      {
+        "epoch": 3,
+        "train_loss": 0.23055113392535823,
+        "validation_loss": 0.23117042259363177,
+        "validation_accuracy": 0.911144883485309,
+        "seconds": 43.458
+      },
+      {
+        "epoch": 4,
+        "train_loss": 0.20587021975592854,
+        "validation_loss": 0.19815023899561487,
+        "validation_accuracy": 0.9242147922998987,
+        "seconds": 46.035
+      },
+      {
+        "epoch": 5,
+        "train_loss": 0.19017854247038235,
+        "validation_loss": 0.18838813070589044,
+        "validation_accuracy": 0.9272543059777102,
+        "seconds": 44.877
+      },
+      {
+        "epoch": 6,
+        "train_loss": 0.1790149330191035,
+        "validation_loss": 0.17254271753653205,
+        "validation_accuracy": 0.9359675785207701,
+        "seconds": 42.999
+      },
+      {
+        "epoch": 7,
+        "train_loss": 0.16729099178949763,
+        "validation_loss": 0.16964147619925735,
+        "validation_accuracy": 0.9362715298885511,
+        "seconds": 59.621
+      },
+      {
+        "epoch": 8,
+        "train_loss": 0.16050161112110622,
+        "validation_loss": 0.16125016855009905,
+        "validation_accuracy": 0.9399189463019251,
+        "seconds": 45.892
+      },
+      {
+        "epoch": 9,
+        "train_loss": 0.15234070305607847,
+        "validation_loss": 0.16311911724983377,
+        "validation_accuracy": 0.938500506585613,
+        "seconds": 43.175
+      },
+      {
+        "epoch": 10,
+        "train_loss": 0.14780460085494374,
+        "validation_loss": 0.15974227534239052,
+        "validation_accuracy": 0.9416413373860182,
+        "seconds": 44.762
+      },
+      {
+        "epoch": 11,
+        "train_loss": 0.14295085530287938,
+        "validation_loss": 0.1534272677992615,
+        "validation_accuracy": 0.942451874366768,
+        "seconds": 43.289
+      },
+      {
+        "epoch": 12,
+        "train_loss": 0.13900709942369707,
+        "validation_loss": 0.153239187377806,
+        "validation_accuracy": 0.9414387031408308,
+        "seconds": 51.743
+      },
+      {
+        "epoch": 13,
+        "train_loss": 0.1347517128550697,
+        "validation_loss": 0.1512317095121714,
+        "validation_accuracy": 0.9446808510638298,
+        "seconds": 53.404
+      },
+      {
+        "epoch": 14,
+        "train_loss": 0.1329189578677804,
+        "validation_loss": 0.151356993523533,
+        "validation_accuracy": 0.9432624113475178,
+        "seconds": 45.853
+      },
+      {
+        "epoch": 15,
+        "train_loss": 0.13141659816850504,
+        "validation_loss": 0.1510001602868541,
+        "validation_accuracy": 0.9444782168186423,
+        "seconds": 42.355
+      }
+    ]
+  },
+  "official_test": {
+    "count": 19962,
+    "generated_count": 9962,
+    "camera_count": 10000,
+    "forced_cutoff": 0.5,
+    "confusion_matrix": {
+      "true_ai": 9449,
+      "false_ai": 611,
+      "true_camera": 9389,
+      "missed_ai": 513
+    },
+    "accuracy": 0.9436930167317904,
+    "ai_precision": 0.9392644135188867,
+    "ai_recall": 0.9485043164023288,
+    "ai_f1": 0.94386175207272,
+    "camera_false_positive_rate": 0.0611,
+    "roc_auc": 0.9867808020477816,
+    "exploratory_bands": {
+      "camera_max": 0.1,
+      "ai_min": 0.9
+    },
+    "coverage": 0.8389439935878169,
+    "inconclusive_count": 3215,
+    "accuracy_among_decided": 0.9838777094404968,
+    "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+    "dataset": "CIFAKE official test after exact duplicate/conflict audit",
+    "bce": 0.14657656227511592,
+    "architecture": "cifake-cnn-v1",
+    "checkpoint_sha256": "946dd9fbe81c8bb3a37fe1dcae821a1ddc86f9f70d3362c54987e849a1a51c82",
+    "warning": "CIFAKE-domain results only; not accuracy on Gemini, modern generators or phone photos. No edit detection is trained."
+  },
+  "paired_benchmark": {
+    "subset_seed": 20261118,
+    "per_class": 250,
+    "baseline_model": "s-gehring/detectra-openfake",
+    "baseline_revision": "c84565e",
+    "baseline": {
+      "count": 500,
+      "generated_count": 250,
+      "camera_count": 250,
+      "forced_cutoff": 0.5,
+      "confusion_matrix": {
+        "true_ai": 0,
+        "false_ai": 0,
+        "true_camera": 250,
+        "missed_ai": 250
+      },
+      "accuracy": 0.5,
+      "ai_precision": null,
+      "ai_recall": 0.0,
+      "ai_f1": 0.0,
+      "camera_false_positive_rate": 0.0,
+      "roc_auc": 0.565856,
+      "exploratory_bands": {
+        "camera_max": 0.1,
+        "ai_min": 0.9
+      },
+      "coverage": 1.0,
+      "inconclusive_count": 0,
+      "accuracy_among_decided": 0.5,
+      "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize."
+    },
+    "candidate": {
+      "count": 500,
+      "generated_count": 250,
+      "camera_count": 250,
+      "forced_cutoff": 0.5,
+      "confusion_matrix": {
+        "true_ai": 233,
+        "false_ai": 15,
+        "true_camera": 235,
+        "missed_ai": 17
+      },
+      "accuracy": 0.936,
+      "ai_precision": 0.9395161290322581,
+      "ai_recall": 0.932,
+      "ai_f1": 0.9357429718875502,
+      "camera_false_positive_rate": 0.06,
+      "roc_auc": 0.981472,
+      "exploratory_bands": {
+        "camera_max": 0.1,
+        "ai_min": 0.9
+      },
+      "coverage": 0.826,
+      "inconclusive_count": 87,
+      "accuracy_among_decided": 0.9733656174334141,
+      "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize."
+    },
+    "note": "Same fixed CIFAKE test subset; reports in-domain behavior only. Both models see identical decoded pixels."
+  },
+  "target_diagnostics": {
+    "count": 6,
+    "baseline": {
+      "count": 6,
+      "generated_count": 3,
+      "camera_count": 3,
+      "forced_cutoff": 0.5,
+      "confusion_matrix": {
+        "true_ai": 3,
+        "false_ai": 0,
+        "true_camera": 3,
+        "missed_ai": 0
+      },
+      "accuracy": 1.0,
+      "ai_precision": 1.0,
+      "ai_recall": 1.0,
+      "ai_f1": 1.0,
+      "camera_false_positive_rate": 0.0,
+      "roc_auc": 1.0,
+      "exploratory_bands": {
+        "camera_max": 0.1,
+        "ai_min": 0.9
+      },
+      "coverage": 1.0,
+      "inconclusive_count": 0,
+      "accuracy_among_decided": 1.0,
+      "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize."
+    },
+    "candidate": {
+      "count": 6,
+      "generated_count": 3,
+      "camera_count": 3,
+      "forced_cutoff": 0.5,
+      "confusion_matrix": {
+        "true_ai": 0,
+        "false_ai": 2,
+        "true_camera": 1,
+        "missed_ai": 3
+      },
+      "accuracy": 0.16666666666666666,
+      "ai_precision": 0.0,
+      "ai_recall": 0.0,
+      "ai_f1": 0.0,
+      "camera_false_positive_rate": 0.6666666666666666,
+      "roc_auc": 0.1111111111111111,
+      "exploratory_bands": {
+        "camera_max": 0.1,
+        "ai_min": 0.9
+      },
+      "coverage": 0.5,
+      "inconclusive_count": 3,
+      "accuracy_among_decided": 0.3333333333333333,
+      "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize."
+    },
+    "note": "Previously inspected user-labeled development diagnostics, not an independent target test set. Not used in training or checkpoint selection."
+  }
+}

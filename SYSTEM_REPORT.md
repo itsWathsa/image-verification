@@ -139,7 +139,7 @@ The application provides automated estimates that may be incorrect. It does not 
 | OpenCV headless | >=4.10,<5 | Reference alignment and differences |
 | GitHub Actions | Linux Python 3.11 | Automated regression checks |
 
-Detectra-OpenFake revision c84565e is a pretrained model; no model training or fine-tuning was performed in this project. RGB input is resized with bilinear interpolation so its shorter edge is 440 pixels, then center-cropped to 384 x 384. Bytes are divided by 255 and normalized with ImageNet mean [0.485,0.456,0.406] and standard deviation [0.229,0.224,0.225]. A float32 1 x 3 x 384 x 384 tensor enters ONNX Runtime. Sigmoid converts the output logit to the displayed score, which is not a calibrated probability. The author's score scaling and full multi-crop procedure are not applied. Extreme aspect ratios producing an edge above 16,000 pixels are rejected.
+Detectra-OpenFake revision c84565e is a pretrained model; its weights have not been fine-tuned in this project. A separate CIFAKE CNN was trained and evaluated as described in section 9, but was not promoted to the application. Detectra RGB input is resized with bilinear interpolation so its shorter edge is 440 pixels, then center-cropped to 384 x 384. Bytes are divided by 255 and normalized with ImageNet mean [0.485,0.456,0.406] and standard deviation [0.229,0.224,0.225]. A float32 1 x 3 x 384 x 384 tensor enters ONNX Runtime. Sigmoid converts the output logit to the displayed score, which is not a calibrated probability. The author's score scaling and full multi-crop procedure are not applied. Extreme aspect ratios producing an edge above 16,000 pixels are rejected.
 
 ## 6. Output guide
 
@@ -181,3 +181,23 @@ Regression tests verify implementation behavior, including image errors, conclus
 Before claiming reliable accuracy, collect independent original photos, generated images from multiple tools, conventional edits and AI edits. Record generation/edit history separately and obtain pixel masks for localization evaluation. Keep originals and their derivatives in the same split. Choose thresholds on validation data, then freeze them before testing. Measure false positives, missed edits, precision, recall, F1, coverage/inconclusive rate, calibration and localization IoU. Do not select thresholds to make already-inspected examples pass.
 
 The application is suitable for a supervised demonstration of its implemented workflow and documented limitations. Production or forensic use still requires broader validation, capacity testing and appropriate access/privacy controls. No service uptime or guaranteed authenticity classification is claimed.
+
+## 9. CIFAKE training experiment
+
+The user-selected CIFAKE dataset was downloaded from the author's repository at revision e112a942abaecd02b6b1f6f646c807d56be8fb62. It consists of 32 x 32 images from CIFAR-10 and Stable Diffusion 1.4. Original dataset counts are 100,000 training images and 20,000 test images. The preparation audit removed 1,336 exact duplicate records, prevented exact-image overlap across partitions, and reserved validation data from the official training pool. Final counts were 88,832 training, 9,870 validation and 19,962 test images. Near-duplicate leakage has not been exhaustively audited.
+
+A separate PyTorch CNN was trained from scratch for 15 epochs on CPU in approximately 11.5 minutes. It uses convolutional channels 16/32/64, a 64-unit dense layer, dropout 0.25, AdamW and a cosine learning-rate schedule. RGB pixels are bilinearly resized to 32 x 32 and divided by 255. REAL maps to 0 and generated to 1. Checkpoint selection used minimum validation binary cross-entropy; the official test set was excluded from training, model selection and threshold fitting. This is not a reproduction of the paper's exact architecture.
+
+| Evaluation | Current Detectra model | CIFAKE candidate |
+|---|---:|---:|
+| Same 500-image CIFAKE test subset, accuracy at 0.50 | 50.0% | 93.6% |
+| Full 19,962-image audited CIFAKE test, accuracy at 0.50 | Not evaluated | 94.37% |
+| Six known user-labeled development cases, correct at 0.50 | 6/6 | 1/6 |
+
+On the full CIFAKE test, the candidate achieved 93.93% generated-class precision, 94.85% recall, 94.39% F1, ROC-AUC 0.9868 and a 6.11% REAL-class false-positive rate. At the unchanged 0.10/0.90 bands, decision coverage was 83.89%; 3,215 images were inconclusive and accuracy among indicated images was 98.39%. Accuracy among indicated images excludes inconclusive cases and is not overall accuracy.
+
+The candidate missed all three generated examples in the six known development cases at the 0.50 cutoff. These cases are too small and previously inspected to estimate target-population accuracy, but the regression is sufficient to withhold deployment. The website continues to use Detectra-OpenFake. No general-use accuracy improvement is claimed from this experiment. CIFAKE does not train edit localization, and the application's TruFor model is unchanged.
+
+Training code, exact commands, source attribution, licensing and limitations are in CIFAKE.md; aggregate results are in CIFAKE_RESULTS.json. The downloaded dataset, raw predictions, training history and trained candidate weights are stored locally under the ignored .models/cifake/ cache. A future candidate needs source-diverse modern-generator training data and an independent target test before promotion.
+
+Sources: [author dataset repository](https://github.com/jordan-bird/CIFAKE-Real-and-AI-Generated-Synthetic-Images), [Bird and Lotfi paper](https://arxiv.org/abs/2303.14126). Real-image source: Krizhevsky and Hinton, Learning Multiple Layers of Features from Tiny Images, 2009. The dataset's MIT notice is retained in the cached source archive.
