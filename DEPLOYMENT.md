@@ -1,38 +1,27 @@
-# Deploy the web app on Streamlit Community Cloud
+# Deployment on Streamlit Community Cloud
 
-The website and CPU model run together on Streamlit's Linux server. Windows Smart App Control stays enabled on your laptop. Colab is not involved in the deployed app.
+The app and models run together on a Linux host; the user's browser does not need Python, VS Code, or Colab. No paid service is configured by this project.
 
-Streamlit Community Cloud is a free hosting route requiring a GitHub account and a Streamlit Community Cloud account. Check the current hosting terms and limits when creating the app; do not select a paid service for these steps. See [official deployment instructions](https://docs.streamlit.io/deploy/streamlit-community-cloud/deploy-your-app).
+Repository: https://github.com/itsWathsa/image-verification (branch `main`). Hosted app: https://image-verification-ki8pr7csrq4zmj979arh8h.streamlit.app/.
 
-## Upload the prepared source
+## Deploy or update
 
-1. Sign in to [GitHub](https://github.com/) and create a repository named `image-verification`. Choose your intended source visibility. A public repository exposes its uploaded code and files, so use only the prepared files below.
-2. Open the repository and select **Add file → Upload files**. Include `app.py`, `detector.py`, `edit_detector.py`, `requirements.txt`, `README.md`, and the complete `trufor_vendor/` folder with licenses. Commit the upload.
-3. Create `.streamlit/config.toml` using **Add file → Create new file**, paste the contents of the local file with that name, and commit it. The folder is created automatically by the slash in its name.
+1. Commit the source to the repository. Include `app.py`, `detector.py`, `edit_detector.py`, `reference_compare.py`, `provenance.py`, full `trufor_vendor/` with licenses, `requirements.txt`, and `.streamlit/config.toml`. Never upload `.venv`, `.models`, private photos/results, or secrets.
+2. In https://share.streamlit.io/, select the repository, branch `main`, and main file `app.py`. Use Python 3.11 in Advanced settings. No model access token or other secrets are needed for this configuration.
+3. Deploy, or let the existing app rebuild when GitHub changes. Watch build logs for dependencies or memory errors. Verify visitor access using Streamlit's Share/access settings; source-repository visibility does not itself determine app access.
+4. Confirm tabs **AI evidence**, **Possible edits**, **Compare original**, **Signed history**, and **File details** appear. These checks run only when their buttons are clicked.
 
-The project is already uploaded to https://github.com/itsWathsa/image-verification. For later changes, commit the updated app files to that repository. Confirm `.streamlit/config.toml` is present in the repository.
+Full dependencies include CPU PyTorch (TruFor), ONNX Runtime (generation), OpenCV (reference alignment), and the native C2PA SDK (signed history). Generation weights are about 30 MB; the official TruFor archive is approximately 261 MB. Models download on first use and can download again after a restart/rebuild. TruFor's 384-pixel analysis cap limits memory but may hide small edits. Free-host capacity and concurrency are limited; a process crash or failed download is an unavailable/inconclusive check, not a judgment about the image.
 
-Do not upload `.venv`, `.models`, photos, tokens, or secrets. The model is downloaded from Hugging Face by the deployed app when first needed. No Hugging Face token is required for this public model.
+## Verify the update
 
-## Deploy
+- Upload an original JPEG and known generated PNG. Run generation and edit checks independently. Verify both results remain after reruns or downloads and that changing the main image clears them.
+- Use **Compare original** with a known edited pair. Check alignment diagnostics and gray excluded borders; changing only the reference must clear only that comparison.
+- Check **Signed history** using signed, unsigned, and modified signed files. Missing credentials must never imply AI or editing. Native C2PA may be unavailable on this Windows PC due to its DLL policy; the Linux host still needs its own smoke test.
+- The repository workflow **Native C2PA verification** tests a checksum-pinned official signed JPEG, a decodable hash-mismatched copy, and an unsigned image on Linux. It does not use uploaded user photos. Check the workflow's actual outcome and report artifact.
+- Upload invalid `.jpg` bytes and a PNG without EXIF. Expect friendly errors or unavailable metadata, without authenticity labels.
+- If a check fails, inspect its diagnostic details and the Cloud logs. Do not disable Windows security or upgrade to paid hosting just to make a demonstration run without considering alternatives and a budget.
 
-1. Open [Streamlit Community Cloud](https://share.streamlit.io/) and sign in with GitHub. Grant access to the intended repository.
-2. Select **Create app**, then select the repository, branch (usually `main`), and main file **`app.py`**.
-3. Under **Advanced settings**, choose **Python 3.11**. No secrets are needed.
-4. Deploy and watch the build logs. ONNX Runtime, NumPy, CPU PyTorch, and the model download client are installed from `requirements.txt`; installation can take several minutes.
-5. When the app opens, upload a JPEG/PNG and click **Analyze image pixels**. The first click downloads the pinned model weights and loads the model. Wait for it to finish. Later requests reuse the cached model while the process is alive.
-6. Use the app's Share/access settings to choose who can visit it. Verify the audience before sharing its URL. A private source repository does not itself establish the app's visitor permissions.
+The user confirmed ONNX and TruFor outputs on the prior cloud version. The polished UI, reference mode, and native C2PA need verification after this deployment. Local tests do not establish cloud availability or forensic accuracy. Uploads stay within the hosting/session infrastructure; the app does not explicitly write photos to disk or send them to external model inference services. C2PA network fetching is disabled.
 
-## Check the deployed app
-
-- Upload an original JPEG phone photo and a known generated image. Both should show a preview and a score. No particular score is guaranteed.
-- Upload a PNG without EXIF. Its score must not depend on missing camera metadata.
-- Upload an invalid `.jpg`; expect a friendly error.
-- Click **Analyze possible edits**. The first use downloads approximately 261 MB of official weights. Confirm anomaly/reliability maps appear and the overall edit assessment remains inconclusive. See TRUFOR.md. If the host restarts or runs out of memory, do not treat that as evidence about the image.
-- If analysis fails, check Cloud logs and the diagnostic expander. A memory-related process restart is different from an invalid image or missing dependency.
-
-The user has verified that the previous deployed app produces model scores; the ONNX update still needs a cloud smoke test on Community Cloud. Local regression tests mock model inference; the successful Colab run does not establish hosting capacity or detection accuracy. This is a CPU demonstration: concurrent analyses and large images can exhaust free-host resources. Uploads are capped at 20 MB and 20 megapixels. If Cloud cannot accommodate the model, evaluate another host or a smaller model before considering paid hosting.
-
-Uploads are processed on the hosting provider's server. The application does not explicitly write images to disk, call a remote image inference service, or maintain an image database. Hosting/session infrastructure still handles the uploaded data. Only upload images suitable for that environment. Model files may be downloaded again after the app sleeps, restarts, or rebuilds.
-
-Model: [s-gehring/detectra-openfake](https://huggingface.co/s-gehring/detectra-openfake), revision `c84565e`, noncommercial CC-BY-NC-4.0. Single-crop inference uses raw sigmoid scores; the author's score scaling and multi-crop procedure are not applied. Scores are experimental; overall authenticity remains inconclusive until target-data evaluation. Hosting does not improve model accuracy.
+See README.md for interpretation and the separate method/license documentation. The model response is not a calibrated probability, signed claims are not truth, and reference differences are not an exact edit map.

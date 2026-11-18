@@ -5,7 +5,7 @@ The second app question now has its own **Analyze possible edits** button. It ru
 - A whole-image anomaly score, not an authenticity probability.
 - A red/blue anomaly overlay using a fixed 0–1 color scale.
 - A reliability map: bright is higher predicted reliability; dark needs caution.
-- CSV score and PNG overlay downloads.
+- CSV score and plain anomaly/reliability PNG downloads, plus an optional on-screen overlay.
 
 The edit assessment remains **inconclusive**. No edit/no-edit threshold has been validated. A camera photo can be edited, a generated image can produce anomalies, and compression or normal image processing can mislead the model. A low score does not establish absence of edits.
 

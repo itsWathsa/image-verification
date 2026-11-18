@@ -71,7 +71,7 @@ def interpret_score(score):
     if score >= .9:
         return "AI-like signal (experimental)"
     if score <= .1:
-        return "Camera-photo-like signal (experimental)"
+        return "Low AI-like signal (experimental; camera origin unproven)"
     return "Inconclusive"
 
 

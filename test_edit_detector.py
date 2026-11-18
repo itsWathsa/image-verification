@@ -50,5 +50,5 @@ class EditTests(unittest.TestCase):
                 if failure:
                     self.assertIn("Edit analysis unavailable", app.error[0].value)
                 else:
-                    self.assertEqual(app.metric[0].value, "0.700")
+                    self.assertEqual(app.metric[0].value, "0.700000")
                     self.assertIn("Edit assessment: inconclusive", app.warning[0].value)

@@ -41,7 +41,7 @@ class ImageTests(unittest.TestCase):
 
     def test_bands_and_invalid_scores(self):
         self.assertIn("AI-like", interpret_score(0.95))
-        self.assertIn("Camera-photo-like", interpret_score(0.05))
+        self.assertIn("Low AI-like signal", interpret_score(0.05))
         self.assertEqual(interpret_score(0.5), "Inconclusive")
         for value in (float("nan"), -1, 2):
             with self.assertRaises(ValueError):
@@ -106,7 +106,7 @@ class ImageTests(unittest.TestCase):
                     if isinstance(failure, ModuleNotFoundError):
                         self.assertIn("module is unavailable: torch", app.error[0].value)
                 else:
-                    self.assertEqual(app.metric[0].value, "0.500")
+                    self.assertEqual(app.metric[0].value, "0.500000")
 
 
 if __name__ == "__main__":
