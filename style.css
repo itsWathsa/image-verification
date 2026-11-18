@@ -1,0 +1,84 @@
+/* Warm charcoal palette. Native controls retain their labels and focus behavior. */
+.stApp {
+    background: #171613;
+    color: #f4f1ea;
+}
+[data-testid="stHeader"] { background: #171613; }
+.block-container { max-width: 1200px; padding-top: 3rem; padding-bottom: 3rem; }
+h1 { letter-spacing: -0.045em; font-weight: 750 !important; }
+h2, h3 { letter-spacing: -0.025em; }
+[data-testid="stCaptionContainer"] { color: #b8b1a5; }
+.workspace-label {
+    color: #d4b074;
+    font-size: .73rem;
+    font-weight: 650;
+    letter-spacing: .16em;
+    margin: .5rem 0 .65rem;
+}
+.feature-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+    margin: 1.2rem 0 1.6rem;
+}
+.feature-card {
+    background: #201e1a;
+    border: 1px solid #3c3830;
+    border-radius: 14px;
+    padding: 20px;
+}
+.feature-card .number { color: #d4b074; font-size: .75rem; font-weight: 650; }
+.feature-card h3 { font-size: 1rem; margin: 8px 0; color: #f4f1ea; }
+.feature-card p { color: #b8b1a5; font-size: .86rem; line-height: 1.55; margin: 0; }
+[data-testid="stFileUploaderDropzone"] {
+    background: #25231f;
+    border: 1px dashed #70624c;
+    border-radius: 14px;
+    min-height: 128px;
+    padding: 24px;
+}
+[data-testid="stFileUploaderDropzone"]:hover { border-color: #d4b074; }
+button[kind="primary"] {
+    background: #d4b074;
+    color: #171613;
+    border: 1px solid #d4b074;
+    font-weight: 650;
+    border-radius: 9px;
+}
+button[kind="primary"]:hover { background: #e2c591; color: #171613; border-color: #e2c591; }
+button[kind="secondary"] {
+    background: #25231f;
+    color: #f4f1ea;
+    border: 1px solid #514a3e;
+    border-radius: 9px;
+}
+button[kind="secondary"]:hover { border-color: #d4b074; color: #ead4af; }
+button:focus-visible, [role="tab"]:focus-visible {
+    outline: 2px solid #e2c591 !important;
+    outline-offset: 3px;
+}
+[data-baseweb="tab-list"] { gap: 20px; border-bottom: 1px solid #3c3830; }
+[data-baseweb="tab"] { padding: 12px 2px; font-weight: 550; }
+[data-baseweb="tab"][aria-selected="true"] { color: #e2c591; }
+[data-testid="stAlert"][kind="info"] {
+    background: #29261e;
+    border: 1px solid #76603b;
+    border-left: 3px solid #d4b074;
+    color: #f4f1ea;
+    border-radius: 10px;
+}
+[data-testid="stExpander"] {
+    border: 1px solid #3c3830;
+    border-radius: 10px;
+    background: #201e1a;
+}
+[data-testid="stMetric"] { padding: 14px; background: #25231f; border-radius: 10px; }
+[data-testid="stImage"] img { border-radius: 12px; }
+.workspace-footer { color: #b8b1a5; font-size: .78rem; padding-top: 14px; border-top: 1px solid #3c3830; margin-top: 24px; }
+@media (max-width: 640px) {
+    .block-container { padding-left: 1rem; padding-right: 1rem; padding-top: 2.5rem; }
+    .feature-grid { grid-template-columns: 1fr; gap: 10px; }
+    .feature-card { padding: 16px; }
+    [data-baseweb="tab-list"] { gap: 12px; }
+    [data-testid="stFileUploaderDropzone"] { padding: 16px; }
+}

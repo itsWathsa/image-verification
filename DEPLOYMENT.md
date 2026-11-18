@@ -2,7 +2,7 @@
 
 Host the Streamlit app from GitHub repository itsWathsa/image-verification, branch main, entrypoint app.py, using Python 3.11.
 
-Include app.py, conclusions.py, detector.py, edit_detector.py, reference_compare.py, requirements.txt, .streamlit/config.toml, and the complete trufor_vendor/ directory with licenses. Exclude private inputs/results, virtual environments, and model caches.
+Include app.py, style.css, conclusions.py, detector.py, edit_detector.py, reference_compare.py, requirements.txt, .streamlit/config.toml, and the complete trufor_vendor/ directory with licenses. Exclude private inputs/results, virtual environments, and model caches.
 
 After a push, watch Streamlit Community Cloud build logs and refresh the site. Confirm tabs AI detection, Edit detection, Compare original, and File details. Run each analysis, download a report, then confirm results persist. Replacing the primary image must clear all results; replacing only the reference clears its comparison.
 

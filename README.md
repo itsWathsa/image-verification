@@ -2,6 +2,8 @@
 
 A Python web application for AI-use assessment, edit inspection, and original-image comparison.
 
+The interface uses a warm charcoal theme with soft white text and muted gold accents. Theme colors are configured in .streamlit/config.toml; layout and component styling are in style.css.
+
 ## Features
 
 - **AI detection:** a qualified answer about signs of AI generation or AI-assisted editing.
