@@ -43,6 +43,8 @@ See DEPLOYMENT.md for hosting. Source: https://github.com/itsWathsa/image-verifi
 
 Detectra-OpenFake is the only active AI detector. The goal covers fully generated images and camera images edited using AI. **Analyze image pixels** automatically inspects additional views for borderline initial scores; there is one analysis flow and no mode selector. Closer inspection can find stronger signals but also produced false alarms on conventional edits. See [AI_DETECTION.md](AI_DETECTION.md) for the evaluation labels, measured tradeoffs and dataset evaluation commands. The unused CIFAKE CNN experiment is archived locally outside the active project; website uploads are not training data.
 
+The separate [Columbia adjustment experiment](COLUMBIA.md) used authentic source photographs to generate brightness/contrast/gamma training pairs. Its enhancement candidate performed poorly on held-out data and is not connected to the app. Dataset archives and candidate weights remain in the ignored local cache.
+
 Inputs and results stay under data/ and evaluation-private/ locally and are excluded from Git. The app does not explicitly save hosted uploads or call an external image-inference API. Model weights download on first use. Review reports before sharing sensitive information.
 
 Methods and licenses: Detectra-OpenFake c84565e (CC-BY-NC-4.0); TruFor ae54475df6f41a491d7615100feb19263dec13f7 (informational/nonprofit license retained under trufor_vendor/). OpenCV performs reference alignment. See TRUFOR.md, REFERENCE_COMPARISON.md and SYSTEM_REPORT.md.

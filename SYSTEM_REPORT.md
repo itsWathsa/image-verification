@@ -208,3 +208,27 @@ Further fine-tuning requires a compatible native training checkpoint and a large
 The separate CIFAKE CNN was removed from active source and archived locally with its weights, code and results. The CIFAKE dataset cache is retained for possible future research and is not an active model or website input source. The historical experiment's 94.37% CIFAKE result is not an accuracy claim for the active Detectra model. There is now one active AI detector and the separate TruFor edit detector.
 
 Sources: [pinned model card](https://huggingface.co/s-gehring/detectra-openfake/blob/c84565e5bf8969d95908e12844f551e77ae87105/README.md), [author training code](https://github.com/s-gehring/ai-watermark-addon/tree/main/tools/train). Model license: CC-BY-NC-4.0.
+
+## 10. Columbia dataset and photographic-adjustment experiment
+
+The user-proposed Columbia Uncompressed Image Splicing Detection Evaluation Dataset contains 183 authentic images and 180 manually spliced images from four cameras. The supplied splices have no post-processing, so they are suitable for studying copy-and-paste manipulation but do not provide brightness/contrast-edit labels. The author-linked archive was downloaded for noncommercial research, with the source README and attribution retained locally. Source photos and archives are not redistributed in the repository.
+
+For a separate enhancement experiment, the 183 authentic photographs were used to generate individual brightness and contrast factors 0.65/0.8/1.2/1.4 and gamma factors 0.7/0.85/1.2/1.5. Each adjusted example had a control with matching JPEG quality, sampled from 65 to 98. This created 4,392 derived examples, not 4,392 independent photographs. Twenty-three original-photo families were grouped before splitting; related subimages and adjustments remain together. Cross-camera scene overlap and undeclared near duplicates have not been exhaustively audited.
+
+| Partition | Original families | Source photos | Derived examples |
+|---|---:|---:|---:|
+| Training | 13 | 101 | 2,424 |
+| Validation | 5 | 37 | 888 |
+| Test | 5 | 45 | 1,080 |
+
+The final research candidate, tonal-frequency-mlp-v2, uses 272 native-level histogram-frequency and intensity-summary features with a small 16/8-unit MLP. It does not use EXIF, filenames or reference images as prediction inputs. Feature normalization is fitted on training data only; normalized values are clipped to [-5,5]. AdamW, dropout 0.5 and validation binary cross-entropy select the checkpoint. An earlier larger histogram MLP overfit validation data and was rejected before the test was evaluated. The final checkpoint was selected at epoch 17 and training stopped at epoch 42. No test or user-phone examples were used in checkpoint selection.
+
+At a fixed 0.50 cutoff, validation accuracy was 60.92% and test accuracy 60.56%. Test adjustment precision was 62.03%, recall 54.44%, ROC-AUC 0.6501 and control false-positive rate 33.33%. A separate threshold of 0.609775 was selected from the validation negative 95th percentile; it detected 129/540 test adjustments and incorrectly flagged 46/540 controls. Its test recall was therefore 23.89% with an 8.52% false-positive rate, demonstrating that a validation target is not a population guarantee.
+
+On four known phone diagnostics, the three originals were not flagged at the validation-selected threshold, but the known brightness/contrast-edited photo was also missed (score 0.354249). That image may contain combined operations, while the synthetic training examples cover individual operations. The dataset is small, mostly indoor and limited to four cameras; repeated controls and related crops cannot be treated as independent observations for broad accuracy claims.
+
+Decision: the candidate is not integrated into Streamlit. This experiment did not establish a useful enhancement-detection improvement. The active Detectra and TruFor models, weights, thresholds and user workflow remain unchanged. This result does not establish that Columbia is unsuitable for splicing or that a different enhancement approach could not perform better. More representative real-retouching pairs, diverse camera processing and untouched phone/combined-retouch test data are needed for further enhancement work.
+
+Code and exact commands are in COLUMBIA.md; aggregate evidence is in COLUMBIA_RESULTS.json. Source images, manifests, trained weights and histories are in the ignored .models/columbia/ cache. The enhancement experiment is separate from AI-generation detection and does not turn conventional edits into AI-positive labels.
+
+Attribution: Columbia DVMM Laboratory; Y.-F. Hsu and S.-F. Chang, Detecting Image Splicing Using Geometry Invariants and Camera Characteristics Consistency, ICME 2006. Sources: [dataset description](https://www.ee.columbia.edu/ln/dvmm/downloads/authsplcuncmp/), [author terms/download](https://www.ee.columbia.edu/ln/dvmm/downloads/authsplcuncmp/dlform.html). Use is subject to the dataset's noncommercial research terms.
