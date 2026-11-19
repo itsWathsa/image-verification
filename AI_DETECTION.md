@@ -15,11 +15,11 @@ The AI-detection goal is to find AI involvement in either an entirely generated 
 
 Labels describe verified creation history, not appearance, filenames or EXIF. An ordinary edited photo is not automatically an AI-edited photo. No detector or finite test can guarantee detection of every generator and editing method.
 
-## Standard analysis and optional closer inspection
+## Automatic closer inspection
 
-Standard analysis retains the existing preprocessing and weights: bilinear resize to a 440-pixel shorter edge, 384 x 384 center crop, RGB bytes divided by 255 and ImageNet normalization. The ONNX logit is converted with sigmoid. Scores <=0.10 receive a low-AI-signal answer, scores >=0.90 an AI-use indication, and intermediate scores remain inconclusive. These are exploratory bands, not calibrated authenticity probabilities.
+Analysis retains the existing preprocessing and weights for its initial view: bilinear resize to a 440-pixel shorter edge, 384 x 384 center crop, RGB bytes divided by 255 and ImageNet normalization. The ONNX logit is converted with sigmoid. Final scores <=0.10 receive a low-AI-signal answer, scores >=0.90 an AI-use indication, and intermediate scores remain inconclusive. These are exploratory bands, not calibrated authenticity probabilities.
 
-The **Inspect additional views** checkbox is off by default. When enabled, initial raw scores in [0.50, 0.95) trigger two more 384-pixel center crops from shorter edges 576 and 768; the highest score is retained. Low initial scores and initial scores >=0.95 are not rescanned. All views use the same pinned model. This is an inference extension, not new model training. View scores, method and baseline are retained in the CSV and JSON reports. Changing the checkbox clears only the AI result so an old result is not shown under a different setting.
+There is one **Analyze image pixels** action and no additional-view checkbox. Initial raw scores in [0.50, 0.95) automatically trigger two more 384-pixel center crops from shorter edges 576 and 768; the highest score is retained. Low initial scores and initial scores >=0.95 are not rescanned. All views use the same pinned model. This is an inference extension, not new model training. View scores, method and baseline are retained in the CSV and JSON reports. Saved results from the former selectable-mode workflow are cleared before displaying results under this pipeline.
 
 The model author's published procedure inspired the scales and gate. Our variant keeps raw sigmoid scores and the app's existing answer bands. It does not apply the author's Platt scaling, reproduce their calibration, or inherit their reported false-positive rates. Checking more views can increase false alarms. Center crops can also miss small or peripheral AI edits.
 
@@ -27,14 +27,14 @@ The model author's published procedure inspired the scales and gate. Our variant
 
 Real inference ran on three known camera originals, eighteen conventional transformations of those originals, three known generated images, and one known AI-edited camera image. Transformations were brightness factors 0.7/1.3, contrast factors 0.7/1.3, cropping 10% from each border, and JPEG quality 70. These 25 cases are related development examples, not independent validation or test data. No weights or thresholds were fitted on them.
 
-| Cases | Standard AI indications | Optional AI indications | Observation |
+| Cases | Initial-view reference AI indications | Automatic-rescan AI indications | Observation |
 |---|---:|---:|---|
 | 3 camera originals | 0 | 0 | Initial low scores skip rescanning |
-| 18 conventional edits | 0 | 2 | Optional rescans introduced two false alarms; standard mode left five cases inconclusive |
+| 18 conventional edits | 0 | 2 | Rescans introduced two false alarms; the initial view left five cases inconclusive |
 | 3 fully generated images | 3 | 3 | Already high scores skip rescanning |
 | 1 AI-edited camera image | 0 | 1 | Score changed from 0.500714 to 0.983172 |
 
-An ungated experiment that zoomed every image also incorrectly flagged an original at 0.929212. These failures are why rescanning is optional, not a claimed overall accuracy improvement. Aggregate metrics are in `AI_DETECTION_RESULTS.json`; private source images and per-image results remain outside Git. The real-model Streamlit check covers both modes and invalidation.
+An ungated experiment that zoomed every image also incorrectly flagged an original at 0.929212. Rescanning is now the user-requested default pipeline; the findings do not establish an overall accuracy improvement or a reduced false-positive rate. The initial-view column is a development reference, not a second user-selectable approach. Aggregate metrics are in `AI_DETECTION_RESULTS.json`; private source images and per-image results remain outside Git. The real-model Streamlit check verifies automatic rescanning, the absence of a mode selector and repeat-click consistency.
 
 ## Evaluate a labeled dataset
 
@@ -47,7 +47,7 @@ After downloading the model with `python detector.py --download`, run:
 .\.venv\Scripts\python.exe evaluate_ai_use.py path\to\manifest.csv --split test --output evaluation-private\ai-use\test.json
 ```
 
-The evaluator compares the initial view with optional rescanning, reports each creation type separately, and records false AI indications, inconclusive cases, accuracy, precision, recall, F1 and ROC-AUC where defined. The forced 0.50 metrics are separate from the app's 0.10/0.90 answer counts. It rejects a declared original family crossing splits; it cannot discover all undeclared near duplicates. Dataset uploads do not automatically train the model.
+The evaluator compares the initial view with automatic rescanning for development measurement, reports each creation type separately, and records false AI indications, inconclusive cases, accuracy, precision, recall, F1 and ROC-AUC where defined. The forced 0.50 metrics are separate from the app's 0.10/0.90 answer counts. It rejects a declared original family crossing splits; it cannot discover all undeclared near duplicates. Dataset uploads do not automatically train the model.
 
 ## Further training
 

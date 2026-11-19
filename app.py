@@ -131,20 +131,19 @@ def csv_bytes(record):
 
 
 def generation_panel(data):
-    from detector import MODEL_ID, MODEL_REVISION
+    from detector import MODEL_ID, MODEL_REVISION, ANALYSIS_METHOD
     st.subheader("Was AI used to create this image?")
     st.write("Check for AI involvement, including fully generated images and camera photos modified using AI.")
-    detailed = st.checkbox("Inspect additional views", key="generation_detailed",
-                          help="Experimental closer inspection for borderline results. It may find stronger AI-use patterns in edited images, but can also flag ordinary brightness or contrast changes. It does not locate edits.")
-    if "generation" in st.session_state and st.session_state.get("generation_mode_used", False) != detailed:
+    st.caption("Borderline results automatically receive closer inspection. Automated assessments may be incorrect.")
+    if "generation" in st.session_state and st.session_state.get("generation_method") != ANALYSIS_METHOD:
         st.session_state.pop("generation", None)
     if st.button("Analyze image pixels", type="primary", key="analyze_generation"):
-        st.session_state["generation_mode_used"] = detailed
+        st.session_state["generation_method"] = ANALYSIS_METHOD
         def analyze():
             from detector import analyze_pixels
             image, *_ = read_image(data, full_resolution=True)
             with st.spinner("Checking AI-like pixel patterns..."):
-                return analyze_pixels(image, get_detector(), detailed=detailed)
+                return analyze_pixels(image, get_detector())
         run_check("generation", analyze)
     result = saved_result("generation")
     if result is not None:
@@ -167,8 +166,8 @@ def generation_panel(data):
                            file_name="image_score.csv", mime="text/csv", key="download_generation")
     with st.expander("Method and limitations"):
         st.write(f"Detectra-OpenFake | {MODEL_ID} | revision {MODEL_REVISION}. Educational/noncommercial CC-BY-NC-4.0.")
-        st.write("Standard analysis uses a 440-pixel shorter edge and a 384-pixel center crop. With additional views enabled, initial raw scores from 0.50 up to 0.95 trigger closer center views at 576 and 768 pixels; the highest score is retained. The same model is used for all views. Metadata is not used.")
-        st.caption("Scores are raw sigmoid outputs, without the author's Platt scaling. Exploratory answer bands remain <=0.10 and >=0.90. Optional rescanning is experimental and produced false alarms on ordinary processing during development; it is off by default. An AI-use signal cannot distinguish a fully generated image from an AI-edited photo or locate the edit.")
+        st.write("Analysis starts with a 440-pixel shorter edge and a 384-pixel center crop. Initial raw scores from 0.50 up to 0.95 automatically trigger closer center views at 576 and 768 pixels; the highest score is retained. The same model is used for all views. Metadata is not used.")
+        st.caption("Scores are raw sigmoid outputs, without the author's Platt scaling. Exploratory answer bands remain <=0.10 and >=0.90. Closer inspection is experimental and produced false alarms on ordinary brightness and contrast changes during development. An AI-use signal cannot distinguish a fully generated image from an AI-edited photo or locate the edit.")
         st.caption("First use downloads about 30 MB. Small edits, new generators, screenshots, compression and ordinary processing can still cause missed detections or false alarms.")
 
 

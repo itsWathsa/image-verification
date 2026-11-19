@@ -66,7 +66,7 @@ class ImageTests(unittest.TestCase):
         result = analyze_pixels(clean, session)
         self.assertEqual(result["ai_score"], .5)
         self.assertEqual(result["signal"], "Inconclusive")
-        self.assertEqual(len(result["crop_scores"]), 1)
+        self.assertEqual(len(result["crop_scores"]), 3)
         before = session.pixels.copy()
         analyze_pixels(tagged, session)
         np.testing.assert_array_equal(before, session.pixels)

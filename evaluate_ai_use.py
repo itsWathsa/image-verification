@@ -70,15 +70,15 @@ def main():
     if not records:
         parser.error("The requested split contains no images.")
     from app import read_image
-    from detector import analyze_pixels, load_detector, MODEL_ID, MODEL_REVISION, DETAIL_METHOD
+    from detector import analyze_pixels, load_detector, MODEL_ID, MODEL_REVISION, ANALYSIS_METHOD
     model = load_detector(download=False)
     results = []
     for index, row in enumerate(records, 1):
         image, *_ = read_image((args.manifest.parent / row["path"]).read_bytes(), full_resolution=True)
-        result = analyze_pixels(image, model, detailed=True)
+        result = analyze_pixels(image, model)
         results.append({"path": row["path"], "label": row["label"], "group_id": row["group_id"], **result})
         print(f"Evaluated {index}/{len(records)}", flush=True)
-    report = {"model": MODEL_ID, "revision": MODEL_REVISION, "method": DETAIL_METHOD,
+    report = {"model": MODEL_ID, "revision": MODEL_REVISION, "method": ANALYSIS_METHOD,
               "split": args.split, "metrics": evaluate_ai_use(results), "cases": results}
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text(json.dumps(report, indent=2, allow_nan=False) + "\n", encoding="utf-8")

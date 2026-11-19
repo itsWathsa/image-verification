@@ -2,11 +2,8 @@
   "date": "2026-11-19",
   "model": "s-gehring/detectra-openfake",
   "revision": "c84565e",
-  "standard_method": "single-center-v1",
-  "optional_method": "conditional-center-rescan-v1",
-  "optional_mode_is_default": false,
   "weights_retrained": false,
-  "decision": "Retain standard analysis by default. Additional views are optional because they improved one known AI-edited case but introduced two false AI indications on conventional edits.",
+  "decision": "Use automatic conditional rescanning as the user-requested default. Retain documented false alarms on two conventional edits; no validated overall accuracy improvement is claimed.",
   "development_metrics": {
     "task": "AI involvement: fully generated OR camera image edited using AI",
     "positive_labels": [
@@ -365,16 +362,22 @@
   },
   "interface_check": {
     "real_model_streamlit_check_passed": true,
-    "standard_score": 0.5007136564046487,
-    "optional_score": 0.9831716931438459,
-    "optional_mode_is_default": false,
-    "standard_method": "single-center-v1",
-    "optional_method": "conditional-center-rescan-v1"
+    "additional_views_automatic": true,
+    "mode_selector_present": false,
+    "initial_score": 0.5007136564046487,
+    "final_score": 0.9831716931438459,
+    "view_count": 3,
+    "repeat_click_same_score": true,
+    "analysis_method": "conditional-center-rescan-v1"
   },
   "limitations": [
     "25 related development cases, not independent validation/test data.",
     "Original family count is small; do not claim population accuracy.",
     "No thresholds or weights fitted; no calibrated authenticity probability.",
     "No demonstrated ability to detect every generator or AI-assisted edit."
-  ]
+  ],
+  "initial_view_reference_method": "single-center-v1",
+  "active_method": "conditional-center-rescan-v1",
+  "additional_views_automatic": true,
+  "user_selectable_modes": false
 }

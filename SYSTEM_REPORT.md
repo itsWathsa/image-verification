@@ -139,7 +139,7 @@ The application provides automated estimates that may be incorrect. It does not 
 | OpenCV headless | >=4.10,<5 | Reference alignment and differences |
 | GitHub Actions | Linux Python 3.11 | Automated regression checks |
 
-Detectra-OpenFake revision c84565e is the only active AI detector; its pretrained weights have not been fine-tuned in this project. Standard RGB input is resized with bilinear interpolation so its shorter edge is 440 pixels, then center-cropped to 384 x 384. Bytes are divided by 255 and normalized with ImageNet mean [0.485,0.456,0.406] and standard deviation [0.229,0.224,0.225]. A float32 1 x 3 x 384 x 384 tensor enters ONNX Runtime. Sigmoid converts the output logit to the displayed score, which is not a calibrated probability. Optional additional views are described in section 9; the author's score scaling is not applied. Extreme aspect ratios producing an edge above 16,000 pixels are rejected.
+Detectra-OpenFake revision c84565e is the only active AI detector; its pretrained weights have not been fine-tuned in this project. Standard RGB input is resized with bilinear interpolation so its shorter edge is 440 pixels, then center-cropped to 384 x 384. Bytes are divided by 255 and normalized with ImageNet mean [0.485,0.456,0.406] and standard deviation [0.229,0.224,0.225]. A float32 1 x 3 x 384 x 384 tensor enters ONNX Runtime. Sigmoid converts the output logit to the displayed score, which is not a calibrated probability. Automatic additional views are described in section 9; the author's score scaling is not applied. Extreme aspect ratios producing an edge above 16,000 pixels are rejected.
 
 ## 6. Output guide
 
@@ -182,26 +182,26 @@ Before claiming reliable accuracy, collect independent original photos, generate
 
 The application is suitable for a supervised demonstration of its implemented workflow and documented limitations. Production or forensic use still requires broader validation, capacity testing and appropriate access/privacy controls. No service uptime or guaranteed authenticity classification is claimed.
 
-## 9. AI involvement and optional closer inspection
+## 9. AI involvement and automatic closer inspection
 
 The active AI model remains Detectra-OpenFake. Its task is to look for AI involvement in fully generated images and camera photos modified using AI. A positive signal does not distinguish these origins or locate a changed region. Original camera images and conventional brightness, contrast, crop and compression edits are negative examples for AI-use evaluation. TruFor remains a separate localization check; an editing anomaly does not establish AI involvement.
 
-The Inspect additional views checkbox is off by default. If enabled, initial raw scores in [0.50, 0.95) trigger two more center crops using shorter-edge sizes 576 and 768 pixels. Each crop is 384 x 384 with the existing normalization; the highest raw sigmoid score is retained. This uses the same pinned weights. The author-inspired gate and scales do not reproduce the author's calibrated procedure because Platt scaling is not applied. CSV/JSON exports retain the method, initial score and view scores. Changing the setting invalidates only the AI result.
+There is one Analyze image pixels action and no mode selector. Initial raw scores in [0.50, 0.95) automatically trigger two more center crops using shorter-edge sizes 576 and 768 pixels. Each crop is 384 x 384 with the existing normalization; the highest raw sigmoid score is retained. Low initial scores and scores >=0.95 skip rescanning. This uses the same pinned weights. The author-inspired gate and scales do not reproduce the author's calibrated procedure because Platt scaling is not applied. CSV/JSON exports retain the method, initial score and view scores. Saved results from the previous selectable-mode workflow are cleared before using this pipeline.
 
 Real inference covered 25 related development cases: three originals, eighteen conventional transformations, three fully generated images and one AI-edited camera image. The conventional transformations used brightness factors 0.7/1.3, contrast factors 0.7/1.3, a crop removing 10% from each border and JPEG quality 70. Creation labels came from known history, not inferred metadata.
 
-| Creation type | Standard AI indications | Optional AI indications |
+| Creation type | Initial-view reference AI indications | Automatic-rescan AI indications |
 |---|---:|---:|
 | 3 camera originals | 0 | 0 |
 | 18 conventional edits | 0 | 2 false alarms |
 | 3 fully generated images | 3 | 3 |
 | 1 AI-edited camera image | 0, inconclusive | 1 |
 
-The known AI-edited example changed from 0.500714 to 0.983172. Two conventional transformations changed from inconclusive to incorrect AI indications, so optional rescanning is not promoted as a validated overall accuracy improvement. Standard analysis left five conventional cases inconclusive; optional analysis left three inconclusive. Ungated zooming also incorrectly flagged an original. Results demonstrate a sensitivity/false-alarm tradeoff, not generalization accuracy. These examples are previously inspected and share original-image families; they are not an independent test set.
+The known AI-edited example changed from 0.500714 to 0.983172. Two conventional transformations changed from inconclusive to incorrect AI indications. The initial view left five conventional cases inconclusive; rescanning left three inconclusive. Ungated zooming also incorrectly flagged an original. Automatic rescanning is now the requested default pipeline; these results demonstrate a sensitivity/false-alarm tradeoff rather than validated generalization accuracy. The initial-view column is a development reference, not a second user-selectable approach. These examples are previously inspected and share original-image families; they are not an independent test set.
 
-The real-model Streamlit check verified both modes, result invalidation and scores. Regression tests separately cover preprocessing, score aggregation, standard-mode behavior and session isolation. Aggregate diagnostics are in AI_DETECTION_RESULTS.json, without private image filenames. AI_DETECTION.md describes the exact procedure and limitations.
+The real-model Streamlit check verified automatic rescanning on the first click, the absence of a mode selector and identical scores on repeated clicks. Regression tests separately cover preprocessing, score aggregation, rescan gating, result persistence and session isolation. Aggregate diagnostics are in AI_DETECTION_RESULTS.json, without private image filenames. AI_DETECTION.md describes the exact procedure and limitations.
 
-The evaluate_ai_use.py tool accepts a CSV with path, label, group_id and split. It compares initial and optional scores, reports each creation type, and records both forced-0.50 metrics and the application's 0.10/0.90 answer counts. Declared original families cannot cross training, validation, development and test splits. The evaluator does not detect every undeclared duplicate or train the model.
+The evaluate_ai_use.py tool accepts a CSV with path, label, group_id and split. It compares the initial-view reference and automatic-rescan scores for development measurement, reports each creation type, and records both forced-0.50 metrics and the application's 0.10/0.90 answer counts. Declared original families cannot cross training, validation, development and test splits. The evaluator does not detect every undeclared duplicate or train the model.
 
 Further fine-tuning requires a compatible native training checkpoint and a larger source-diverse labeled dataset including AI removals, insertions and replacements, full generations, originals and conventional edits. The current quantized ONNX export is used for inference; no Detectra weights were retrained in this update. It remains necessary to separate original families and generator/source groups, select settings on validation data, then evaluate on untouched test data. Detection of all AI involvement cannot be guaranteed.
 

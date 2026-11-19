@@ -11,8 +11,7 @@ from pathlib import Path
 MODEL_ID = "s-gehring/detectra-openfake"
 MODEL_REVISION = "c84565e"
 CACHE_DIR = Path(__file__).resolve().parent / ".models"
-ANALYSIS_METHOD = "single-center-v1"
-DETAIL_METHOD = "conditional-center-rescan-v1"
+ANALYSIS_METHOD = "conditional-center-rescan-v1"
 RESCAN_EDGES = (576, 768)
 RESCAN_MIN = .5
 RESCAN_MAX = .95
@@ -58,7 +57,7 @@ def load_detector(download=False):
     return ort.InferenceSession(path, sess_options=options, providers=["CPUExecutionProvider"])
 
 
-def analyze_pixels(image, session, detailed=False):
+def analyze_pixels(image, session):
     import numpy as np
 
     inputs = session.get_inputs()
@@ -74,11 +73,11 @@ def analyze_pixels(image, session, detailed=False):
     crops = [{"short_edge": 440, "ai_score": baseline}]
     # Fixed, author-inspired gate, applied identically to every file. Raw
     # scores are retained; the author's Platt calibration is NOT applied.
-    if detailed and RESCAN_MIN <= baseline < RESCAN_MAX:
+    if RESCAN_MIN <= baseline < RESCAN_MAX:
         crops.extend({"short_edge": edge, "ai_score": score_crop(edge)} for edge in RESCAN_EDGES)
     score = max(crop["ai_score"] for crop in crops)
     return {"ai_score": score, "signal": interpret_score(score), "baseline_score": baseline,
-            "crop_scores": crops, "analysis_method": DETAIL_METHOD if detailed else ANALYSIS_METHOD,
+            "crop_scores": crops, "analysis_method": ANALYSIS_METHOD,
             "model": MODEL_ID, "revision": MODEL_REVISION}
 
 

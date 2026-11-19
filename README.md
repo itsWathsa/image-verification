@@ -41,7 +41,7 @@ Reference comparison finds differences relative to the supplied original. Marked
 
 See DEPLOYMENT.md for hosting. Source: https://github.com/itsWathsa/image-verification. The app runs models on the server; the browser needs no local Python or Colab. The latest source requires a cloud rebuild and browser smoke check after changes.
 
-Detectra-OpenFake is the only active AI detector. The goal covers fully generated images and camera images edited using AI. Optional **Inspect additional views** can find stronger signals in borderline cases, but also produced false alarms on conventional edits and is off by default. See [AI_DETECTION.md](AI_DETECTION.md) for the evaluation labels, measured tradeoffs and dataset evaluation commands. The unused CIFAKE CNN experiment is archived locally outside the active project; website uploads are not training data.
+Detectra-OpenFake is the only active AI detector. The goal covers fully generated images and camera images edited using AI. **Analyze image pixels** automatically inspects additional views for borderline initial scores; there is one analysis flow and no mode selector. Closer inspection can find stronger signals but also produced false alarms on conventional edits. See [AI_DETECTION.md](AI_DETECTION.md) for the evaluation labels, measured tradeoffs and dataset evaluation commands. The unused CIFAKE CNN experiment is archived locally outside the active project; website uploads are not training data.
 
 Inputs and results stay under data/ and evaluation-private/ locally and are excluded from Git. The app does not explicitly save hosted uploads or call an external image-inference API. Model weights download on first use. Review reports before sharing sensitive information.
 
