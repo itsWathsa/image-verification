@@ -79,13 +79,16 @@ def load_edit_detector(download=False):
     return model
 
 
-def analyze_edits(image, model):
+def analyze_edits(image, model, max_edge=None):
     import numpy as np
     import torch
 
     original_size = image.size
+    edge = MAX_EDGE if max_edge is None else max_edge
+    if not isinstance(edge, int) or not 32 <= edge <= 768:
+        raise ValueError("TruFor analysis edge must be an integer from 32 to 768.")
     analyzed = image.convert("RGB")
-    analyzed.thumbnail((MAX_EDGE, MAX_EDGE), Image.Resampling.LANCZOS)
+    analyzed.thumbnail((edge, edge), Image.Resampling.LANCZOS)
     if min(analyzed.size) < 32:
         raise ValueError("Image is too small or narrow for TruFor (minimum 32 pixels per side).")
     # Official dataset preprocessing divides RGB bytes by 256, not 255.
