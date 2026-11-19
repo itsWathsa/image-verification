@@ -1,4 +1,4 @@
-# Image Verification ? System Report
+# Image Verification - System Report
 
 Updated: 19 November 2026. Presentation version.
 
@@ -232,3 +232,32 @@ Decision: the candidate is not integrated into Streamlit. This experiment did no
 Code and exact commands are in COLUMBIA.md; aggregate evidence is in COLUMBIA_RESULTS.json. Source images, manifests, trained weights and histories are in the ignored .models/columbia/ cache. The enhancement experiment is separate from AI-generation detection and does not turn conventional edits into AI-positive labels.
 
 Attribution: Columbia DVMM Laboratory; Y.-F. Hsu and S.-F. Chang, Detecting Image Splicing Using Geometry Invariants and Camera Characteristics Consistency, ICME 2006. Sources: [dataset description](https://www.ee.columbia.edu/ln/dvmm/downloads/authsplcuncmp/), [author terms/download](https://www.ee.columbia.edu/ln/dvmm/downloads/authsplcuncmp/dlform.html). Use is subject to the dataset's noncommercial research terms.
+
+## 11. FiveK retouching research and tonal-comparison improvement
+
+MIT-Adobe FiveK was selected as a closer match for photographic brightness, contrast and colour retouching than a splicing-only dataset. The downloaded sRGB release is linked by the Retinexformer researchers and contains 5,000 input/target pairs. The original research-only licenses are retained under research-licenses/FiveK/. This project uses those image pairs, not the Retinexformer enhancement model. FiveK's input renderings are not certified untouched camera JPEGs, so a classifier may learn rendering style rather than edit history.
+
+The source archive is 658,823,577 bytes with SHA-256 1c2c79f92c103c337517c8fff32ecc434d08c0287ecf49325447344945d05251. The release's official 500 test photo IDs were preserved; 500 of its training IDs were held out for validation. One unchanged pair and one pair with different dimensions were excluded from training. No exact decoded-image duplicate families were found across different photo IDs. Final counts were 3,998 training, 500 validation and 500 test photos. Near-duplicate scenes have not been exhaustively ruled out.
+
+Each photo supplied an expert target, one explicit brightness/contrast/gamma/saturation/combined adjustment and two matched controls, exported using the same JPEG quality within the photo. There were 19,992 derived examples, not 19,992 independent photographs. All versions of a photo remained in one split. Inputs combined a 64 x 64 RGB thumbnail with 272 histogram-frequency/intensity features. A small 38,713-parameter CNN/frequency network was trained from scratch using binary cross-entropy plus paired ranking, AdamW and dropout. Training-only statistics standardized features; metadata, private filenames and reference images were not prediction inputs.
+
+Validation binary cross-entropy selected epoch 22; training stopped at epoch 37. A high-adjustment score threshold of 0.5395969748 was frozen from the validation-control 95th percentile before testing. A release gate was also recorded before testing: at least 50% recall for both expert and synthetic adjustments, at most 10% false positives on external camera controls, and correct handling of four known phone diagnostics. These are research decisions, not existing application thresholds.
+
+| Task | Accuracy at 0.50 | Recall at frozen threshold | Control false-positive rate at frozen threshold |
+|---|---:|---:|---:|
+| FiveK expert retouch, 500 held-out pairs | 93.00% | 90.00% | 4.80% |
+| FiveK synthetic adjustments, same 500 photo IDs | 66.10% | 37.60% | 4.80% |
+| Combined FiveK examples | 79.55% | 63.80% | 4.80% |
+| External Columbia originals / combined tonal variants, 183 source photos | 75.68% | 97.81% | 45.90% |
+
+At the frozen threshold, 450/500 expert targets and 188/500 synthetic adjustments were detected; 24/500 FiveK input photos were falsely flagged. Repeated controls are counted twice in the combined table, not independent photos. In the external check, 179/183 combined tonal variants were detected, but 84/183 authentic camera controls were falsely flagged. Columbia includes related subimages, so it is not 183 independent scenes; nevertheless, the false alarms reveal substantial source sensitivity. Those images were not part of this candidate's training or threshold selection.
+
+The three known original phone diagnostics remained unflagged, and the known brightness/contrast-edited phone image was flagged. These four previously inspected cases are diagnostic evidence only. No threshold was adjusted after testing. The candidate failed its release gate on synthetic-edit recall and external false alarms, and is not loaded by Streamlit. Its 93% expert-retouch result must not be reported as the active app's edit-detection accuracy or as a direct improvement over TruFor on a shared benchmark. Repeated tuning against the now-inspected FiveK test would require a fresh source-disjoint test set for a new independent accuracy claim.
+
+The application improvement implemented in this update is reference-based tonal measurement. After successful alignment, valid blurred overlapping pixels supply display luma (0.299 R + 0.587 G + 0.114 B). The app displays the candidate/reference mean difference on a 0-255 scale and the ratio of luma standard deviations. A contrast ratio is withheld for nearly flat references. Non-overlapping borders are excluded. Mean shifts of at least two levels or contrast-spread shifts of at least 5% contribute to the comparison summary even if no region exceeds the separate 32-level highlighting threshold. These are observable pair differences, not learned editing probabilities or proof of software editing.
+
+On the supplied original/tonally edited phone pair, comparison measured +24.8 brightness levels, a 1.30x contrast-spread ratio and a 33.6% marked overlap area. The app test confirmed these measurements and the differences-detected conclusion. The Edit detection panel now explains that local inconsistency analysis may miss global adjustments and points to comparison when an original is available. JSON exports retain the tonal measurements. Detectra and TruFor weights, score bands and independent checks remain unchanged.
+
+All 39 regression tests passed, including new split/class-mapping checks and tonal-comparison cases below the region-marking threshold, flat references and overlap exclusion. These tests establish implementation behavior, not detection accuracy. FIVEK.md contains the reproducible Windows commands and protocol; FIVEK_RESULTS.json contains aggregate evidence. Dataset files, trained research weights, histories and private diagnostics stay in the ignored local cache. The public app does not train on uploads or download FiveK.
+
+Attribution: Vladimir Bychkovsky, Sylvain Paris, Eric Chan and Fredo Durand, Learning Photographic Global Tonal Adjustment with a Database of Input / Output Image Pairs, CVPR 2011. Sources: [MIT-Adobe FiveK](https://data.csail.mit.edu/graphics/fivek/), [processed release linked by the Retinexformer researchers](https://github.com/caiyuanhao1998/Retinexformer). Use is subject to the original research-only licenses.

@@ -174,6 +174,7 @@ def generation_panel(data):
 def edit_panel(data):
     st.subheader("Does this image show signs of editing?")
     st.write("Check for inconsistencies and inspect areas that may have been modified.")
+    st.caption("This check targets local inconsistencies. Brightness, contrast and colour adjustments may leave no reliable local trace. If you have the original, Compare original also measures changes in overall brightness and contrast.")
     if st.button("Analyze possible edits", key="analyze_edits"):
         def analyze():
             from edit_detector import analyze_edits
@@ -231,7 +232,9 @@ def reference_panel(data):
                 run_check("reference", compare)
             result = saved_result("reference")
             if result is not None:
-                st.info("Differences detected compared with the supplied original." if result["changed_fraction"] > 0 else "No significant differences detected compared with the supplied original.")
+                tone = result.get("tonal_comparison", {})
+                differences = result["changed_fraction"] > 0 or tone.get("notable_tonal_difference", False)
+                st.info("Differences detected compared with the supplied original." if differences else "No significant differences detected compared with the supplied original.")
                 first, second = st.columns(2)
                 first.image(result["aligned_reference"], caption="Aligned reference")
                 second.image(result["candidate"], caption="Version being examined")
@@ -239,12 +242,20 @@ def reference_panel(data):
                 with st.expander("View marked differences"):
                     st.image(result["overlay"], caption="Red marks differences under fixed inspection settings, not confirmed edits.")
                 st.metric("Marked area within overlap (not an edit probability)", f"{result['changed_fraction']:.1%}")
+                if tone:
+                    st.write("**Brightness and contrast comparison**")
+                    first, second = st.columns(2)
+                    first.metric("Average brightness difference", f"{tone['brightness_difference_levels']:+.1f} / 255")
+                    ratio = tone["contrast_spread_ratio"]
+                    second.metric("Contrast spread relative to original", f"{ratio:.2f}x" if ratio is not None else "Not measurable")
+                    st.caption("Positive brightness values mean the examined image is brighter on average. A contrast ratio above 1 means a wider spread of light and dark tones. These measurements describe differences; they do not identify their cause.")
                 st.caption(f"Compared size: {result['analysis_size']}; overlap: {result['overlap_fraction']:.1%}.")
                 if result["alignment"].get("spatial_support") == "limited":
                     st.warning("Alignment is supported by a limited part of the image. Extrapolation may contribute to the differences.")
                 st.warning("Reference differences are not a calibrated editing estimate. Regeneration, lighting, compression and imperfect alignment may affect broad areas. No marked differences does not prove no edit occurred.")
                 with st.expander("Alignment and inspection details"):
-                    st.json({"alignment": result["alignment"], "inspection_settings": result.get("inspection_settings", {})})
+                    st.json({"alignment": result["alignment"], "inspection_settings": result.get("inspection_settings", {}),
+                             "tonal_comparison": tone})
                 st.download_button("Download reference difference overlay", png_bytes(result["overlay"]), file_name="reference_differences.png", mime="image/png")
     else:
         reset_for_reference(None)
@@ -269,7 +280,7 @@ def combined_report(image_format, dimensions):
                 result = {key: result[key] for key in ("score", "analyzed_size") if key in result}
                 result["conclusion"] = edit_conclusion(result["score"])
             elif name == "reference":
-                result = {key: result[key] for key in ("changed_fraction", "overlap_fraction", "analysis_size", "alignment", "inspection_settings", "assessment") if key in result}
+                result = {key: result[key] for key in ("changed_fraction", "overlap_fraction", "analysis_size", "alignment", "inspection_settings", "assessment", "tonal_comparison") if key in result}
             status = "completed"
             report["checks"][name] = {"status": status, "result": result}
     return report

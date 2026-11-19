@@ -8,7 +8,7 @@ The interface uses a warm charcoal theme with soft white text and muted gold acc
 
 - **AI detection:** a qualified answer about signs of AI generation or AI-assisted editing.
 - **Edit detection:** a qualified answer about possible editing, with anomaly and reliability maps.
-- **Compare original:** align a supplied original and highlight differences.
+- **Compare original:** align a supplied original, highlight differences, and measure brightness/contrast changes.
 - **File details:** preview, format, stored dimensions, and available camera metadata.
 - Persistent session results, CSV/PNG downloads, and a combined JSON report.
 
@@ -33,6 +33,8 @@ For TruFor, <=0.10 is displayed as no strong editing evidence detected; >=0.90 a
 
 Reference comparison finds differences relative to the supplied original. Marked area is not an editing probability. Lighting, compression, reconstruction, and alignment error can contribute. Weak alignment produces an inconclusive result.
 
+The comparison also reports average brightness difference (0-255 levels) and contrast spread relative to the original. This can reveal small tonal adjustments even when no area exceeds the separate region-marking threshold. These are measurements of pair differences, not proof of what caused them. TruFor alone may miss global brightness, contrast and colour changes.
+
 ## Tests and deployment
 
 ```powershell
@@ -44,6 +46,8 @@ See DEPLOYMENT.md for hosting. Source: https://github.com/itsWathsa/image-verifi
 Detectra-OpenFake is the only active AI detector. The goal covers fully generated images and camera images edited using AI. **Analyze image pixels** automatically inspects additional views for borderline initial scores; there is one analysis flow and no mode selector. Closer inspection can find stronger signals but also produced false alarms on conventional edits. See [AI_DETECTION.md](AI_DETECTION.md) for the evaluation labels, measured tradeoffs and dataset evaluation commands. The unused CIFAKE CNN experiment is archived locally outside the active project; website uploads are not training data.
 
 The separate [Columbia adjustment experiment](COLUMBIA.md) used authentic source photographs to generate brightness/contrast/gamma training pairs. Its enhancement candidate performed poorly on held-out data and is not connected to the app. Dataset archives and candidate weights remain in the ignored local cache.
+
+The subsequent [FiveK retouching experiment](FIVEK.md) trained a paired CNN/frequency classifier using real retouching pairs and synthetic tonal changes. It achieved 93% on the held-out expert-retouch task but missed many simple adjustments and falsely flagged 45.9% of external original-camera controls. It failed its release gate and is not an active detector. Full aggregate results are in [FIVEK_RESULTS.json](FIVEK_RESULTS.json). The implemented app improvement is brightness/contrast measurement in original-image comparison.
 
 Inputs and results stay under data/ and evaluation-private/ locally and are excluded from Git. The app does not explicitly save hosted uploads or call an external image-inference API. Model weights download on first use. Review reports before sharing sensitive information.
 

@@ -4,9 +4,9 @@ import io
 import unittest
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageEnhance
 
-from reference_compare import _checked_transform, compare_reference
+from reference_compare import _checked_transform, compare_reference, tonal_summary
 
 
 def textured_image(seed=17):
@@ -28,6 +28,28 @@ class ReferenceComparisonTests(unittest.TestCase):
         self.assertEqual(result["overlap_fraction"], 1.)
         self.assertIn("authenticity inconclusive", result["assessment"])
         self.assertFalse(np.asarray(result["mask"]).any())
+        self.assertFalse(result["tonal_comparison"]["notable_tonal_difference"])
+
+    def test_brightness_shift_below_region_marking_threshold_is_reported(self):
+        image = textured_image()
+        candidate = ImageEnhance.Brightness(image).enhance(1.05)
+        result = compare_reference(image, candidate)
+        self.assertEqual(result["changed_fraction"], 0.)
+        tone = result["tonal_comparison"]
+        self.assertTrue(tone["notable_tonal_difference"])
+        self.assertGreater(tone["brightness_difference_levels"], 3.)
+        self.assertGreater(tone["contrast_spread_ratio"], 1.02)
+
+    def test_tonal_measurement_excludes_nonoverlap_and_handles_flat_reference(self):
+        original = np.full((20, 20, 3), 50, dtype=np.uint8)
+        candidate = original.copy()
+        candidate[:10] = 255
+        valid = np.zeros((20, 20), dtype=bool)
+        valid[10:] = True
+        tone = tonal_summary(original, candidate, valid)
+        self.assertEqual(tone["brightness_difference_levels"], 0.)
+        self.assertIsNone(tone["contrast_spread_ratio"])
+        self.assertFalse(tone["notable_tonal_difference"])
 
     def test_resize_and_jpeg_do_not_become_large_content_change(self):
         image = textured_image()

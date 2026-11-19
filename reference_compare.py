@@ -4,6 +4,28 @@ import numpy as np
 from PIL import Image
 
 
+def tonal_summary(reference, candidate, valid):
+    """Measure overlapping display-luma statistics, not editing probabilities."""
+    weights = np.asarray([.299, .587, .114], dtype=np.float32)
+    first = (reference.astype(np.float32) @ weights)[valid]
+    second = (candidate.astype(np.float32) @ weights)[valid]
+    if first.size < 32:
+        raise ValueError("Inconclusive: too little overlap for tonal comparison.")
+    before, after = float(first.mean()), float(second.mean())
+    before_spread, after_spread = float(first.std()), float(second.std())
+    contrast_ratio = after_spread / before_spread if before_spread >= 2 else None
+    # These sensitivity settings describe observable pair differences. They do
+    # not establish that software editing (rather than capture) caused them.
+    brightness_shift = after - before
+    notable = abs(brightness_shift) >= 2. or (contrast_ratio is not None and abs(contrast_ratio - 1) >= .05)
+    return {"reference_mean_luma": before, "candidate_mean_luma": after,
+            "brightness_difference_levels": brightness_shift,
+            "reference_luma_std": before_spread, "candidate_luma_std": after_spread,
+            "contrast_spread_ratio": contrast_ratio, "notable_tonal_difference": bool(notable),
+            "scale": "display luma 0 to 255, overlap only",
+            "notice": "Pair differences, not a software-edit diagnosis; exposure, lighting and alignment can contribute."}
+
+
 def _checked_transform(transform, source_shape, target_shape):
     """Reject folded, singular, or extreme projections before warping pixels."""
     import cv2
@@ -97,6 +119,7 @@ def compare_reference(original, candidate):
     # Fixed display/inspection settings, not trained edit-detection thresholds.
     first = cv2.GaussianBlur(aligned, (5, 5), 1.)
     second = cv2.GaussianBlur(target, (5, 5), 1.)
+    tone = tonal_summary(first, second, valid)
     difference = np.max(np.abs(first.astype(np.float32) - second.astype(np.float32)), axis=2)
     difference[~valid] = 0
     mask = ((difference > 32) & valid).astype(np.uint8)
@@ -122,7 +145,9 @@ def compare_reference(original, candidate):
             "overlap_fraction": float(valid.mean()), "analysis_size": (width, height),
             "overlap_mask": Image.fromarray(valid.astype(np.uint8) * 255),
             "comparison_status": status,
+            "tonal_comparison": tone,
             "display_notes": "Gray borders were excluded. Marking settings are exploratory inspection aids, not validated edit-detection thresholds.",
             "inspection_settings": {"maximum_edge": 1000, "difference_threshold_0_to_255": 32,
-                                    "minimum_component_pixels": 32, "gaussian_sigma": 1.},
+                                    "minimum_component_pixels": 32, "gaussian_sigma": 1.,
+                                    "tonal_mean_shift_levels": 2., "tonal_contrast_relative_change": .05},
             "alignment": diagnostics, "assessment": "reference differences only; authenticity inconclusive"}
