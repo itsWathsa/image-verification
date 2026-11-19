@@ -1,0 +1,5 @@
+path,label,group_id,split
+images/original.jpg,camera_original,photo-001,development
+images/contrast_adjusted.jpg,camera_conventional_edit,photo-001,development
+images/ai_object_removal.jpg,camera_ai_edited,photo-001,development
+images/generated.jpg,fully_ai_generated,generation-001,development

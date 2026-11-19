@@ -133,13 +133,18 @@ def csv_bytes(record):
 def generation_panel(data):
     from detector import MODEL_ID, MODEL_REVISION
     st.subheader("Was AI used to create this image?")
-    st.write("Check for signs of AI generation or AI-assisted editing.")
+    st.write("Check for AI involvement, including fully generated images and camera photos modified using AI.")
+    detailed = st.checkbox("Inspect additional views", key="generation_detailed",
+                          help="Experimental closer inspection for borderline results. It may find stronger AI-use patterns in edited images, but can also flag ordinary brightness or contrast changes. It does not locate edits.")
+    if "generation" in st.session_state and st.session_state.get("generation_mode_used", False) != detailed:
+        st.session_state.pop("generation", None)
     if st.button("Analyze image pixels", type="primary", key="analyze_generation"):
+        st.session_state["generation_mode_used"] = detailed
         def analyze():
             from detector import analyze_pixels
             image, *_ = read_image(data, full_resolution=True)
             with st.spinner("Checking AI-like pixel patterns..."):
-                return analyze_pixels(image, get_detector())
+                return analyze_pixels(image, get_detector(), detailed=detailed)
         run_check("generation", analyze)
     result = saved_result("generation")
     if result is not None:
@@ -149,13 +154,22 @@ def generation_panel(data):
         with st.expander("Score details"):
             st.metric("AI detection score", f"{result['ai_score']:.6f}")
             st.caption("Model score, not a probability. Low scores do not rule out AI-assisted editing.")
+            if len(result.get("crop_scores", [])) > 1:
+                st.caption("A closer inspection was applied because the initial score was borderline. The final score is the highest of three center views.")
+            if "crop_scores" in result:
+                st.json({"method": result["analysis_method"], "initial_score": result["baseline_score"],
+                         "views": result["crop_scores"]})
         st.download_button("Download model score (CSV)", csv_bytes({"ai_score": result["ai_score"], "model": MODEL_ID,
-                           "revision": MODEL_REVISION, "conclusion": conclusion, "notice": "Automated estimate; may be incorrect"}),
+                           "revision": MODEL_REVISION, "analysis_method": result.get("analysis_method", "single-center-crop"),
+                           "initial_score": result.get("baseline_score", result["ai_score"]),
+                           "crop_scores": json.dumps(result.get("crop_scores", [])),
+                           "conclusion": conclusion, "notice": "Automated estimate; may be incorrect"}),
                            file_name="image_score.csv", mime="text/csv", key="download_generation")
     with st.expander("Method and limitations"):
         st.write(f"Detectra-OpenFake | {MODEL_ID} | revision {MODEL_REVISION}. Educational/noncommercial CC-BY-NC-4.0.")
-        st.write("Single center crop and raw sigmoid; no author score scaling or multi-crop procedure. Exploratory bands: <=0.10 low AI-like signal, >=0.90 AI-like signal, otherwise inconclusive. Metadata is not used.")
-        st.caption("First use downloads about 30 MB. New generators, screenshots, compression and ordinary editing can affect the result. The decision bands have not been independently calibrated.")
+        st.write("Standard analysis uses a 440-pixel shorter edge and a 384-pixel center crop. With additional views enabled, initial raw scores from 0.50 up to 0.95 trigger closer center views at 576 and 768 pixels; the highest score is retained. The same model is used for all views. Metadata is not used.")
+        st.caption("Scores are raw sigmoid outputs, without the author's Platt scaling. Exploratory answer bands remain <=0.10 and >=0.90. Optional rescanning is experimental and produced false alarms on ordinary processing during development; it is off by default. An AI-use signal cannot distinguish a fully generated image from an AI-edited photo or locate the edit.")
+        st.caption("First use downloads about 30 MB. Small edits, new generators, screenshots, compression and ordinary processing can still cause missed detections or false alarms.")
 
 
 def edit_panel(data):

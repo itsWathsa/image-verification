@@ -11,6 +11,11 @@ from pathlib import Path
 MODEL_ID = "s-gehring/detectra-openfake"
 MODEL_REVISION = "c84565e"
 CACHE_DIR = Path(__file__).resolve().parent / ".models"
+ANALYSIS_METHOD = "single-center-v1"
+DETAIL_METHOD = "conditional-center-rescan-v1"
+RESCAN_EDGES = (576, 768)
+RESCAN_MIN = .5
+RESCAN_MAX = .95
 
 
 def sigmoid(value):
@@ -19,17 +24,19 @@ def sigmoid(value):
     return 1 / (1 + math.exp(-value)) if value >= 0 else math.exp(value) / (1 + math.exp(value))
 
 
-def prepare_pixels(image):
+def prepare_pixels(image, short_edge=440):
     import numpy as np
     from PIL import Image
 
     rgb = image.convert("RGB")
     width, height = rgb.size
-    # Model card: shorter edge 440, bilinear; center crop 384; ImageNet norm.
+    if short_edge not in (440, *RESCAN_EDGES):
+        raise ValueError("Unsupported detector rescan size.")
+    # Same 384x384 input and normalization at each model-card center scale.
     if width <= height:
-        size = (440, int(440 * height / width))
+        size = (short_edge, int(short_edge * height / width))
     else:
-        size = (int(440 * width / height), 440)
+        size = (int(short_edge * width / height), short_edge)
     if max(size) > 16000:
         raise ValueError("Image aspect ratio is too extreme for safe model preprocessing.")
     resized = rgb.resize(size, Image.Resampling.BILINEAR)
@@ -51,18 +58,28 @@ def load_detector(download=False):
     return ort.InferenceSession(path, sess_options=options, providers=["CPUExecutionProvider"])
 
 
-def analyze_pixels(image, session):
+def analyze_pixels(image, session, detailed=False):
     import numpy as np
 
     inputs = session.get_inputs()
     if len(inputs) != 1 or inputs[0].name != "pixel_values":
-        raise ValueError("Unexpected candidate input schema")
-    output = np.asarray(session.run(["logits"], {"pixel_values": prepare_pixels(image)})[0])
-    if output.size != 1:
-        raise ValueError("Unexpected candidate output schema")
-    logit = float(output.reshape(-1)[0])
-    score = sigmoid(logit)
-    return {"ai_score": score, "signal": interpret_score(score)}
+        raise ValueError("Unexpected detector input schema")
+    def score_crop(edge):
+        output = np.asarray(session.run(["logits"], {"pixel_values": prepare_pixels(image, edge)})[0])
+        if output.size != 1:
+            raise ValueError("Unexpected detector output schema")
+        return sigmoid(float(output.reshape(-1)[0]))
+
+    baseline = score_crop(440)
+    crops = [{"short_edge": 440, "ai_score": baseline}]
+    # Fixed, author-inspired gate, applied identically to every file. Raw
+    # scores are retained; the author's Platt calibration is NOT applied.
+    if detailed and RESCAN_MIN <= baseline < RESCAN_MAX:
+        crops.extend({"short_edge": edge, "ai_score": score_crop(edge)} for edge in RESCAN_EDGES)
+    score = max(crop["ai_score"] for crop in crops)
+    return {"ai_score": score, "signal": interpret_score(score), "baseline_score": baseline,
+            "crop_scores": crops, "analysis_method": DETAIL_METHOD if detailed else ANALYSIS_METHOD,
+            "model": MODEL_ID, "revision": MODEL_REVISION}
 
 
 def interpret_score(score):

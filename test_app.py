@@ -64,7 +64,9 @@ class ImageTests(unittest.TestCase):
         tagged = clean.copy()
         tagged.info["exif"] = b"arbitrary camera metadata"
         result = analyze_pixels(clean, session)
-        self.assertEqual(result, {"ai_score": .5, "signal": "Inconclusive"})
+        self.assertEqual(result["ai_score"], .5)
+        self.assertEqual(result["signal"], "Inconclusive")
+        self.assertEqual(len(result["crop_scores"]), 1)
         before = session.pixels.copy()
         analyze_pixels(tagged, session)
         np.testing.assert_array_equal(before, session.pixels)

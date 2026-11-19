@@ -22,6 +22,27 @@ def edit_result():
 
 
 class SessionTests(unittest.TestCase):
+    def test_additional_view_setting_invalidates_only_ai_result(self):
+        def prediction(image, model, detailed=False):
+            return {"ai_score": .98 if detailed else .5, "signal": "test"}
+
+        with patch("streamlit.file_uploader", return_value=upload("blue")), patch(
+            "detector.load_detector", return_value=object()
+        ), patch("detector.analyze_pixels", side_effect=prediction) as generation, patch(
+            "edit_detector.load_edit_detector", return_value=object()
+        ), patch("edit_detector.analyze_edits", return_value=edit_result()) as editing:
+            app = AppTest.from_file("app.py").run(timeout=30)
+            app.button(key="analyze_generation").click().run(timeout=30)
+            app.button(key="analyze_edits").click().run(timeout=30)
+            app.checkbox(key="generation_detailed").check().run(timeout=30)
+            self.assertNotIn("generation", app.session_state)
+            self.assertIn("edits", app.session_state)
+            app.button(key="analyze_generation").click().run(timeout=30)
+            self.assertFalse(app.exception)
+            self.assertEqual(app.metric[0].value, "0.980000")
+            self.assertEqual(editing.call_count, 1)
+            self.assertEqual(generation.call_count, 2)
+
     def test_report_contains_qualified_answers_without_removed_feature(self):
         from app import combined_report
         states = {"image_digest": "test", "generation": {"ok": True, "result": {"ai_score": .98}}}

@@ -1,0 +1,380 @@
+{
+  "date": "2026-11-19",
+  "model": "s-gehring/detectra-openfake",
+  "revision": "c84565e",
+  "standard_method": "single-center-v1",
+  "optional_method": "conditional-center-rescan-v1",
+  "optional_mode_is_default": false,
+  "weights_retrained": false,
+  "decision": "Retain standard analysis by default. Additional views are optional because they improved one known AI-edited case but introduced two false AI indications on conventional edits.",
+  "development_metrics": {
+    "task": "AI involvement: fully generated OR camera image edited using AI",
+    "positive_labels": [
+      "fully_ai_generated",
+      "camera_ai_edited"
+    ],
+    "negative_labels": [
+      "camera_original",
+      "camera_conventional_edit"
+    ],
+    "initial_center_view": {
+      "count": 25,
+      "generated_count": 4,
+      "camera_count": 21,
+      "forced_cutoff": 0.5,
+      "confusion_matrix": {
+        "true_ai": 4,
+        "false_ai": 2,
+        "true_camera": 19,
+        "missed_ai": 0
+      },
+      "accuracy": 0.92,
+      "ai_precision": 0.6666666666666666,
+      "ai_recall": 1.0,
+      "ai_f1": 0.8,
+      "camera_false_positive_rate": 0.09523809523809523,
+      "roc_auc": 0.9761904761904762,
+      "exploratory_bands": {
+        "camera_max": 0.1,
+        "ai_min": 0.9
+      },
+      "coverage": 0.76,
+      "inconclusive_count": 6,
+      "accuracy_among_decided": 1.0,
+      "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+      "answer_counts": {
+        "ai_use_indicated": 3,
+        "low_ai_signal": 16,
+        "inconclusive": 6,
+        "false_ai_indications": 0,
+        "ai_cases_with_low_signal": 0
+      }
+    },
+    "conditional_rescan": {
+      "count": 25,
+      "generated_count": 4,
+      "camera_count": 21,
+      "forced_cutoff": 0.5,
+      "confusion_matrix": {
+        "true_ai": 4,
+        "false_ai": 2,
+        "true_camera": 19,
+        "missed_ai": 0
+      },
+      "accuracy": 0.92,
+      "ai_precision": 0.6666666666666666,
+      "ai_recall": 1.0,
+      "ai_f1": 0.8,
+      "camera_false_positive_rate": 0.09523809523809523,
+      "roc_auc": 0.9642857142857143,
+      "exploratory_bands": {
+        "camera_max": 0.1,
+        "ai_min": 0.9
+      },
+      "coverage": 0.88,
+      "inconclusive_count": 3,
+      "accuracy_among_decided": 0.9090909090909091,
+      "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+      "answer_counts": {
+        "ai_use_indicated": 6,
+        "low_ai_signal": 16,
+        "inconclusive": 3,
+        "false_ai_indications": 2,
+        "ai_cases_with_low_signal": 0
+      }
+    },
+    "by_creation_type": {
+      "camera_original": {
+        "count": 3,
+        "initial_center_view": {
+          "count": 3,
+          "generated_count": 0,
+          "camera_count": 3,
+          "forced_cutoff": 0.5,
+          "confusion_matrix": {
+            "true_ai": 0,
+            "false_ai": 0,
+            "true_camera": 3,
+            "missed_ai": 0
+          },
+          "accuracy": 1.0,
+          "ai_precision": null,
+          "ai_recall": null,
+          "ai_f1": null,
+          "camera_false_positive_rate": 0.0,
+          "roc_auc": null,
+          "exploratory_bands": {
+            "camera_max": 0.1,
+            "ai_min": 0.9
+          },
+          "coverage": 1.0,
+          "inconclusive_count": 0,
+          "accuracy_among_decided": 1.0,
+          "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+          "answer_counts": {
+            "ai_use_indicated": 0,
+            "low_ai_signal": 3,
+            "inconclusive": 0,
+            "false_ai_indications": 0,
+            "ai_cases_with_low_signal": 0
+          }
+        },
+        "conditional_rescan": {
+          "count": 3,
+          "generated_count": 0,
+          "camera_count": 3,
+          "forced_cutoff": 0.5,
+          "confusion_matrix": {
+            "true_ai": 0,
+            "false_ai": 0,
+            "true_camera": 3,
+            "missed_ai": 0
+          },
+          "accuracy": 1.0,
+          "ai_precision": null,
+          "ai_recall": null,
+          "ai_f1": null,
+          "camera_false_positive_rate": 0.0,
+          "roc_auc": null,
+          "exploratory_bands": {
+            "camera_max": 0.1,
+            "ai_min": 0.9
+          },
+          "coverage": 1.0,
+          "inconclusive_count": 0,
+          "accuracy_among_decided": 1.0,
+          "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+          "answer_counts": {
+            "ai_use_indicated": 0,
+            "low_ai_signal": 3,
+            "inconclusive": 0,
+            "false_ai_indications": 0,
+            "ai_cases_with_low_signal": 0
+          }
+        }
+      },
+      "camera_conventional_edit": {
+        "count": 18,
+        "initial_center_view": {
+          "count": 18,
+          "generated_count": 0,
+          "camera_count": 18,
+          "forced_cutoff": 0.5,
+          "confusion_matrix": {
+            "true_ai": 0,
+            "false_ai": 2,
+            "true_camera": 16,
+            "missed_ai": 0
+          },
+          "accuracy": 0.8888888888888888,
+          "ai_precision": 0.0,
+          "ai_recall": null,
+          "ai_f1": 0.0,
+          "camera_false_positive_rate": 0.1111111111111111,
+          "roc_auc": null,
+          "exploratory_bands": {
+            "camera_max": 0.1,
+            "ai_min": 0.9
+          },
+          "coverage": 0.7222222222222222,
+          "inconclusive_count": 5,
+          "accuracy_among_decided": 1.0,
+          "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+          "answer_counts": {
+            "ai_use_indicated": 0,
+            "low_ai_signal": 13,
+            "inconclusive": 5,
+            "false_ai_indications": 0,
+            "ai_cases_with_low_signal": 0
+          }
+        },
+        "conditional_rescan": {
+          "count": 18,
+          "generated_count": 0,
+          "camera_count": 18,
+          "forced_cutoff": 0.5,
+          "confusion_matrix": {
+            "true_ai": 0,
+            "false_ai": 2,
+            "true_camera": 16,
+            "missed_ai": 0
+          },
+          "accuracy": 0.8888888888888888,
+          "ai_precision": 0.0,
+          "ai_recall": null,
+          "ai_f1": 0.0,
+          "camera_false_positive_rate": 0.1111111111111111,
+          "roc_auc": null,
+          "exploratory_bands": {
+            "camera_max": 0.1,
+            "ai_min": 0.9
+          },
+          "coverage": 0.8333333333333334,
+          "inconclusive_count": 3,
+          "accuracy_among_decided": 0.8666666666666667,
+          "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+          "answer_counts": {
+            "ai_use_indicated": 2,
+            "low_ai_signal": 13,
+            "inconclusive": 3,
+            "false_ai_indications": 2,
+            "ai_cases_with_low_signal": 0
+          }
+        }
+      },
+      "fully_ai_generated": {
+        "count": 3,
+        "initial_center_view": {
+          "count": 3,
+          "generated_count": 3,
+          "camera_count": 0,
+          "forced_cutoff": 0.5,
+          "confusion_matrix": {
+            "true_ai": 3,
+            "false_ai": 0,
+            "true_camera": 0,
+            "missed_ai": 0
+          },
+          "accuracy": 1.0,
+          "ai_precision": 1.0,
+          "ai_recall": 1.0,
+          "ai_f1": 1.0,
+          "camera_false_positive_rate": null,
+          "roc_auc": null,
+          "exploratory_bands": {
+            "camera_max": 0.1,
+            "ai_min": 0.9
+          },
+          "coverage": 1.0,
+          "inconclusive_count": 0,
+          "accuracy_among_decided": 1.0,
+          "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+          "answer_counts": {
+            "ai_use_indicated": 3,
+            "low_ai_signal": 0,
+            "inconclusive": 0,
+            "false_ai_indications": 0,
+            "ai_cases_with_low_signal": 0
+          }
+        },
+        "conditional_rescan": {
+          "count": 3,
+          "generated_count": 3,
+          "camera_count": 0,
+          "forced_cutoff": 0.5,
+          "confusion_matrix": {
+            "true_ai": 3,
+            "false_ai": 0,
+            "true_camera": 0,
+            "missed_ai": 0
+          },
+          "accuracy": 1.0,
+          "ai_precision": 1.0,
+          "ai_recall": 1.0,
+          "ai_f1": 1.0,
+          "camera_false_positive_rate": null,
+          "roc_auc": null,
+          "exploratory_bands": {
+            "camera_max": 0.1,
+            "ai_min": 0.9
+          },
+          "coverage": 1.0,
+          "inconclusive_count": 0,
+          "accuracy_among_decided": 1.0,
+          "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+          "answer_counts": {
+            "ai_use_indicated": 3,
+            "low_ai_signal": 0,
+            "inconclusive": 0,
+            "false_ai_indications": 0,
+            "ai_cases_with_low_signal": 0
+          }
+        }
+      },
+      "camera_ai_edited": {
+        "count": 1,
+        "initial_center_view": {
+          "count": 1,
+          "generated_count": 1,
+          "camera_count": 0,
+          "forced_cutoff": 0.5,
+          "confusion_matrix": {
+            "true_ai": 1,
+            "false_ai": 0,
+            "true_camera": 0,
+            "missed_ai": 0
+          },
+          "accuracy": 1.0,
+          "ai_precision": 1.0,
+          "ai_recall": 1.0,
+          "ai_f1": 1.0,
+          "camera_false_positive_rate": null,
+          "roc_auc": null,
+          "exploratory_bands": {
+            "camera_max": 0.1,
+            "ai_min": 0.9
+          },
+          "coverage": 0.0,
+          "inconclusive_count": 1,
+          "accuracy_among_decided": null,
+          "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+          "answer_counts": {
+            "ai_use_indicated": 0,
+            "low_ai_signal": 0,
+            "inconclusive": 1,
+            "false_ai_indications": 0,
+            "ai_cases_with_low_signal": 0
+          }
+        },
+        "conditional_rescan": {
+          "count": 1,
+          "generated_count": 1,
+          "camera_count": 0,
+          "forced_cutoff": 0.5,
+          "confusion_matrix": {
+            "true_ai": 1,
+            "false_ai": 0,
+            "true_camera": 0,
+            "missed_ai": 0
+          },
+          "accuracy": 1.0,
+          "ai_precision": 1.0,
+          "ai_recall": 1.0,
+          "ai_f1": 1.0,
+          "camera_false_positive_rate": null,
+          "roc_auc": null,
+          "exploratory_bands": {
+            "camera_max": 0.1,
+            "ai_min": 0.9
+          },
+          "coverage": 1.0,
+          "inconclusive_count": 0,
+          "accuracy_among_decided": 1.0,
+          "note": "Evaluation only; this function fits neither thresholds nor weights. Results describe the supplied images and may not generalize.",
+          "answer_counts": {
+            "ai_use_indicated": 1,
+            "low_ai_signal": 0,
+            "inconclusive": 0,
+            "false_ai_indications": 0,
+            "ai_cases_with_low_signal": 0
+          }
+        }
+      }
+    },
+    "note": "The evaluator's generated fields mean AI involvement, including AI edits. Camera fields mean the no-AI labels. Scores are not calibrated probabilities; creation history is supplied, not inferred. Known development cases do not estimate independent target accuracy."
+  },
+  "interface_check": {
+    "real_model_streamlit_check_passed": true,
+    "standard_score": 0.5007136564046487,
+    "optional_score": 0.9831716931438459,
+    "optional_mode_is_default": false,
+    "standard_method": "single-center-v1",
+    "optional_method": "conditional-center-rescan-v1"
+  },
+  "limitations": [
+    "25 related development cases, not independent validation/test data.",
+    "Original family count is small; do not claim population accuracy.",
+    "No thresholds or weights fitted; no calibrated authenticity probability.",
+    "No demonstrated ability to detect every generator or AI-assisted edit."
+  ]
+}
