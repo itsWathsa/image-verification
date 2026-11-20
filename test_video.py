@@ -53,6 +53,37 @@ class VideoTests(unittest.TestCase):
                 self.assertEqual(report["dimensions"], [width, height])
                 self.assertEqual(report["sample_count"], 1)
 
+    def test_overstated_final_frame_retries_nearby_and_records_actual_time(self):
+        with patch("video_analysis.cv2.VideoCapture") as factory, patch("video_analysis.analyze_pixels", return_value={"ai_score": .02}):
+            capture = factory.return_value
+            capture.isOpened.return_value = True
+            position = [0]
+            def metadata(key):
+                return {cv2.CAP_PROP_FPS: 30, cv2.CAP_PROP_FRAME_COUNT: 194, cv2.CAP_PROP_FRAME_WIDTH: 64, cv2.CAP_PROP_FRAME_HEIGHT: 64}[key]
+            def seek(key, index):
+                position[0] = index
+                return True
+            capture.get.side_effect = metadata
+            capture.set.side_effect = seek
+            capture.read.side_effect = lambda: (False, None) if position[0] >= 192 else (True, np.zeros((64,64,3),np.uint8))
+            report = analyze_video(b"video", object())["report"]
+            self.assertEqual(report["sample_count"], 12)
+            self.assertEqual(report["sampling_adjustments"], 1)
+            self.assertEqual(report["frames"][-1]["requested_frame_index"], 193)
+            self.assertEqual(report["frames"][-1]["frame_index"], 191)
+            self.assertAlmostEqual(report["frames"][-1]["timestamp_seconds"], 191/30)
+
+    def test_short_video_does_not_reuse_an_existing_sample_on_failure(self):
+        with patch("video_analysis.cv2.VideoCapture") as factory, patch("video_analysis.analyze_pixels", return_value={"ai_score": .02}) as analyze:
+            capture = factory.return_value
+            capture.isOpened.return_value = True
+            capture.get.side_effect = lambda key: {cv2.CAP_PROP_FPS: 30, cv2.CAP_PROP_FRAME_COUNT: 2, cv2.CAP_PROP_FRAME_WIDTH: 64, cv2.CAP_PROP_FRAME_HEIGHT: 64}[key]
+            capture.read.side_effect = [(True, np.zeros((64,64,3),np.uint8)), (False, None)]
+            with self.assertRaisesRegex(ValueError, "could not be decoded"):
+                analyze_video(b"video", object())
+            self.assertEqual(analyze.call_count, 1)
+            capture.release.assert_called_once()
+
     def test_low_and_inconclusive_never_claim_authenticity(self):
         for score, phrase in ((.01, "does not confirm"), (.5, "Unable to determine")):
             with patch("video_analysis.analyze_pixels", return_value={"ai_score": score}):

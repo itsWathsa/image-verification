@@ -196,7 +196,7 @@ def video_panel():
     from video_analysis import MAX_VIDEO_BYTES, VIDEO_METHOD, analyze_video
     st.subheader("Video AI screening")
     st.caption("MP4, MOV, AVI or WebM | up to 100 MB | 10 minutes | up to 4096 x 2160 (landscape or portrait)")
-    st.caption("Experimental: checks up to 12 evenly spaced frames with the image model. Audio and motion are not analysed; video accuracy has not been validated.")
+    st.caption("Experimental: checks up to 12 frames with an image model. Real videos can be falsely flagged. Audio and motion are not analysed; scores do not verify video authenticity.")
     uploaded = st.file_uploader("Choose a video to examine", type=["mp4", "mov", "avi", "webm"], key="video_upload")
     data = uploaded.getvalue() if uploaded is not None else None
     digest = hashlib.sha256(data).hexdigest() if data else None

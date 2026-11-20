@@ -15,7 +15,7 @@ MAX_VIDEO_BYTES = 100 * 1024 * 1024
 MAX_DURATION_SECONDS = 600
 MAX_VIDEO_PIXELS = 4096 * 2160
 SAMPLE_COUNT = 12
-VIDEO_METHOD = "uniform-frame-screen-v1:" + ANALYSIS_METHOD
+VIDEO_METHOD = "uniform-frame-screen-v2:" + ANALYSIS_METHOD
 
 
 def analyze_video(data, session, progress=None):
@@ -56,12 +56,26 @@ def analyze_video(data, session, progress=None):
             for step, index in enumerate(indices):
                 if time.monotonic() - started > 120:
                     raise ValueError("Video analysis took too long. Try a shorter or smaller video.")
-                if index != 0 and not capture.set(cv2.CAP_PROP_POS_FRAMES, int(index)):
-                    failed.append(int(index))
-                    continue
-                ok, frame = capture.read()
-                if not ok or frame is None:
-                    failed.append(int(index))
+                requested_index = int(index)
+                # Some encoders overstate the final frame count. Try at most
+                # two preceding end frames, never substitute distant content.
+                candidates = [requested_index]
+                if requested_index == int(count) - 1:
+                    candidates.extend(value for value in (requested_index - 1, requested_index - 2) if value >= 0)
+                frame = None
+                for candidate in candidates:
+                    if candidate in {record["frame_index"] for record in records}:
+                        continue
+                    if candidate != 0 and not capture.set(cv2.CAP_PROP_POS_FRAMES, candidate):
+                        continue
+                    if candidate == 0 and requested_index != 0 and not capture.set(cv2.CAP_PROP_POS_FRAMES, 0):
+                        continue
+                    ok, decoded = capture.read()
+                    if ok and decoded is not None:
+                        index, frame = candidate, decoded
+                        break
+                if frame is None:
+                    failed.append(requested_index)
                     continue
                 if frame.shape[0] * frame.shape[1] > MAX_VIDEO_PIXELS:
                     raise ValueError(f"Decoded frame resolution is {frame.shape[1]} x {frame.shape[0]}, exceeding the 8.85-megapixel limit. Resize to 4K or smaller and try again.")
@@ -70,7 +84,7 @@ def analyze_video(data, session, progress=None):
                 score = float(result["ai_score"])
                 if not math.isfinite(score) or not 0 <= score <= 1:
                     raise ValueError("Invalid frame score.")
-                records.append({"frame_index": int(index), "timestamp_seconds": float(index / fps), "ai_score": score})
+                records.append({"requested_frame_index": requested_index, "frame_index": int(index), "timestamp_seconds": float(index / fps), "ai_score": score})
                 if preview is None or score > preview[0]:
                     image.thumbnail((640, 640))
                     preview = (score, image.copy(), float(index / fps))
@@ -90,7 +104,8 @@ def analyze_video(data, session, progress=None):
                       "model": MODEL_ID, "revision": MODEL_REVISION, "duration_seconds": duration,
                       "dimensions": [int(width), int(height)], "sample_count": len(records),
                       "mean_frame_score": sum(scores) / len(scores), "max_frame_score": max(scores),
-                      "high_signal_frames": high, "frames": records, "conclusion": conclusion,
+                      "high_signal_frames": high, "frames": records,
+                      "sampling_adjustments": sum(row["requested_frame_index"] != row["frame_index"] for row in records), "conclusion": conclusion,
                       "notice": "Experimental image-model screening of sampled frames; not validated for video. Scores are not probabilities. Audio, motion and unsampled frames are not assessed."}
             return {"report": report, "preview": preview[1], "preview_timestamp": preview[2]}
         finally:

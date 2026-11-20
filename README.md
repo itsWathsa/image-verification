@@ -42,6 +42,8 @@ Select **Video** in the media selector, upload an MP4, MOV, AVI or WebM and clic
 
 The app checks up to 12 distinct, evenly spaced frames with the existing frozen image model. It displays the mean sampled-frame score, count scoring at least 0.90, and a timestamped frame table. The highest-scoring sampled frame can be inspected. JSON reports include the media hash, model revision, sampling method and every frame score. A high signal in even one frame is reported as a sampled-frame signal, never a whole-video authenticity verdict. Partial decode failures produce an unavailable result.
 
-This is experimental visual screening, not a trained or validated video detector. Audio, motion, lip synchronisation and unsampled segments are not analysed. Compression and ordinary processing can cause false alarms. A low score does not establish authenticity. No video accuracy claim is available without evaluation on labelled real and generated videos.
+This is experimental visual screening, not a trained or validated video detector. Audio, motion, lip synchronisation and unsampled segments are not analysed. Compression and ordinary processing can cause false alarms. A low score does not establish authenticity. A limited labelled benchmark is documented in VIDEO_DETECTION.md; it does not establish accuracy on modern or unseen videos.
 
 Uploads are temporarily written to a system temporary directory for decoding and removed when analysis exits, including handled failures. Decoded images are processed one at a time; only the highest-scoring thumbnail and numeric results remain in session state. No new model or Python dependency is required. Image uploads retain their separate 20 MiB limit.
+
+Video dataset provenance, reproducible evaluation and limitations: [VIDEO_DETECTION.md](VIDEO_DETECTION.md).

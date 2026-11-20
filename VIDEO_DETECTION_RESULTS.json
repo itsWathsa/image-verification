@@ -1,0 +1,203 @@
+{
+  "method": "uniform-frame-screen-v2:conditional-center-rescan-v1",
+  "manifest_sha256": "1cb8dc0b1d22bbba2ae99a46cf7a15361656477461ccebd534dd20ebcd185ca6",
+  "counts": {
+    "development": 48,
+    "test": 48
+  },
+  "decode_or_analysis_errors": [],
+  "results": {
+    "development": {
+      "current_any_frame_090": {
+        "generated_detected": 32,
+        "generated_missed": 0,
+        "real_false_alarms": 6,
+        "real_not_flagged": 10,
+        "recall": 1.0,
+        "false_positive_rate": 0.375,
+        "by_source": {
+          "Pexels": {
+            "total": 16,
+            "flagged": 6
+          },
+          "BDAnimateDiffLightning": {
+            "total": 6,
+            "flagged": 6
+          },
+          "CogVideoX5B": {
+            "total": 6,
+            "flagged": 6
+          },
+          "RunwayML": {
+            "total": 5,
+            "flagged": 5
+          },
+          "StableDiffusion": {
+            "total": 5,
+            "flagged": 5
+          },
+          "Veo": {
+            "total": 5,
+            "flagged": 5
+          },
+          "VideoPoet": {
+            "total": 5,
+            "flagged": 5
+          }
+        }
+      },
+      "candidate_consensus_050": {
+        "generated_detected": 30,
+        "generated_missed": 2,
+        "real_false_alarms": 4,
+        "real_not_flagged": 12,
+        "recall": 0.9375,
+        "false_positive_rate": 0.25,
+        "by_source": {
+          "Pexels": {
+            "total": 16,
+            "flagged": 4
+          },
+          "BDAnimateDiffLightning": {
+            "total": 6,
+            "flagged": 6
+          },
+          "CogVideoX5B": {
+            "total": 6,
+            "flagged": 5
+          },
+          "RunwayML": {
+            "total": 5,
+            "flagged": 5
+          },
+          "StableDiffusion": {
+            "total": 5,
+            "flagged": 5
+          },
+          "Veo": {
+            "total": 5,
+            "flagged": 5
+          },
+          "VideoPoet": {
+            "total": 5,
+            "flagged": 4
+          }
+        }
+      }
+    },
+    "test": {
+      "current_any_frame_090": {
+        "generated_detected": 32,
+        "generated_missed": 0,
+        "real_false_alarms": 4,
+        "real_not_flagged": 12,
+        "recall": 1.0,
+        "false_positive_rate": 0.25,
+        "by_source": {
+          "RunwayML": {
+            "total": 6,
+            "flagged": 6
+          },
+          "StableDiffusion": {
+            "total": 6,
+            "flagged": 6
+          },
+          "Veo": {
+            "total": 5,
+            "flagged": 5
+          },
+          "VideoPoet": {
+            "total": 5,
+            "flagged": 5
+          },
+          "BDAnimateDiffLightning": {
+            "total": 5,
+            "flagged": 5
+          },
+          "CogVideoX5B": {
+            "total": 5,
+            "flagged": 5
+          },
+          "Pexels": {
+            "total": 16,
+            "flagged": 4
+          }
+        }
+      },
+      "candidate_consensus_050": {
+        "generated_detected": 32,
+        "generated_missed": 0,
+        "real_false_alarms": 4,
+        "real_not_flagged": 12,
+        "recall": 1.0,
+        "false_positive_rate": 0.25,
+        "by_source": {
+          "RunwayML": {
+            "total": 6,
+            "flagged": 6
+          },
+          "StableDiffusion": {
+            "total": 6,
+            "flagged": 6
+          },
+          "Veo": {
+            "total": 5,
+            "flagged": 5
+          },
+          "VideoPoet": {
+            "total": 5,
+            "flagged": 5
+          },
+          "BDAnimateDiffLightning": {
+            "total": 5,
+            "flagged": 5
+          },
+          "CogVideoX5B": {
+            "total": 5,
+            "flagged": 5
+          },
+          "Pexels": {
+            "total": 16,
+            "flagged": 4
+          }
+        }
+      }
+    }
+  },
+  "notice": "Exploratory bounded subset, not a canonical benchmark. Errors are reported separately, not counted as correct. Candidate is offline only; no detector weights were trained.",
+  "candidate_development_gate": {
+    "required_recall_gain": 0.1,
+    "maximum_false_positive_rate": 0.05,
+    "must_not_increase_false_alarms": true,
+    "passed": false,
+    "enabled_in_app": false,
+    "reason": "Offline experiment only; an initial small benchmark does not establish deployment reliability."
+  },
+  "dataset": {
+    "name": "faridlab/deepaction_v1",
+    "revision": "476932c3369424ca59dc1f8fb758cb3c13fe63fe",
+    "selection_seed": 20261120,
+    "real_file_size_filter_bytes": 20000000,
+    "selected_action_families": 32,
+    "generated_clips": 64,
+    "real_clips": 32,
+    "download_bytes": 458748306,
+    "source": "https://huggingface.co/datasets/faridlab/deepaction_v1"
+  },
+  "model": {
+    "model": "s-gehring/detectra-openfake",
+    "revision": "c84565e"
+  },
+  "sampling_retry": {
+    "clips_using_bounded_endpoint_retry": 10,
+    "sources": {
+      "Veo": 10
+    },
+    "unavailable_analyses": 0
+  },
+  "user_example": {
+    "source": "https://www.pexels.com/video/robotic-hand-in-front-of-vintage-tv-7688618/",
+    "ai_generation_provenance": "unverified",
+    "included_in_metrics_or_training": false
+  }
+}
