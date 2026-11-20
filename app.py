@@ -239,24 +239,33 @@ def combined_report(image_format, dimensions):
 
 
 def main():
-    st.set_page_config(page_title="Image Verification", page_icon=":material/image_search:", layout="wide")
+    st.set_page_config(page_title="AASL | Image Verification", page_icon=":material/travel:", layout="wide")
     css = Path(__file__).with_name("style.css").read_text(encoding="utf-8")
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
-    st.markdown('<div class="workspace-label">IMAGE ANALYSIS WORKSPACE</div>', unsafe_allow_html=True)
-    st.title("Image Verification")
-    st.write("Check AI use or compare an image with its original.")
-    st.markdown('''<div class="feature-grid">
-      <div class="feature-card"><span class="number">01 / AI DETECTION</span><h3>Assess AI use</h3><p>Check the image for signs of AI generation or AI-assisted editing.</p></div>
-      <div class="feature-card"><span class="number">02 / REFERENCE COMPARISON</span><h3>Compare an original</h3><p>Align two related images and review their differences.</p></div>
+    st.markdown('''<header class="brand-header">
+      <div class="brand-monogram">AASL<span>SRI LANKA</span></div>
+      <div class="brand-name">Airport &amp; Aviation Services<span>(Sri Lanka) (Private) Limited</span></div>
+      <div class="brand-product">IMAGE VERIFICATION<span>Image review workspace</span></div>
+    </header>
+    <section class="workspace-hero">
+      <div class="workspace-label">DIGITAL IMAGE REVIEW</div>
+      <h1>Clarity in every image.</h1>
+      <p>Assess AI involvement and compare source images in one review workspace.</p>
+      <div class="hero-meta"><span>01 &nbsp; Upload an image</span><span>02 &nbsp; Review the evidence</span><span>03 &nbsp; Export your results</span></div>
+    </section>
+    <div class="feature-grid">
+      <div class="feature-card"><span class="number">01 / AI DETECTION</span><h3>Assess AI involvement</h3><p>Review signals of AI generation or AI-assisted modification.</p></div>
+      <div class="feature-card"><span class="number">02 / ORIGINAL COMPARISON</span><h3>Compare with the source</h3><p>Align an image with its original and inspect visual differences.</p></div>
     </div>''', unsafe_allow_html=True)
     with st.container(border=True):
-        st.subheader("Start with an image")
+        st.subheader("Upload image for review")
         st.caption("JPEG or PNG · up to 20 MB · up to 20 megapixels")
         uploaded = st.file_uploader("Choose the image to examine", type=["jpg", "jpeg", "png"])
-    st.caption("Automated assessments may be incorrect. A camera photo can also be edited; no result guarantees authenticity.")
+    st.caption("Review guidance: automated assessments support human review. Results do not guarantee image authenticity.")
     if uploaded is None:
         reset_for_image(None)
         st.caption("Once uploaded, your preview and analysis tools will appear here. An original image is optional.")
+        st.markdown('<div class="workspace-footer"><strong>AASL ? Image Verification</strong><span>Airport &amp; Aviation Services (Sri Lanka) (Private) Limited</span></div>', unsafe_allow_html=True)
         return
     data = uploaded.getvalue()
     reset_for_image(data)
@@ -284,6 +293,7 @@ def main():
     st.download_button("Download all current results (JSON)", json.dumps(combined_report(image_format, dimensions), indent=2, ensure_ascii=False),
                        file_name="image_evidence.json", mime="application/json", key="download_all")
     st.caption("Your report includes completed results and identifies any checks that were not run or could not finish.")
+    st.markdown('<div class="workspace-footer"><strong>AASL ? Image Verification</strong><span>Airport &amp; Aviation Services (Sri Lanka) (Private) Limited</span></div>', unsafe_allow_html=True)
     st.markdown('<div class="workspace-footer">Image Verification · Independent checks. Clear assessments. Reviewable results.</div>', unsafe_allow_html=True)
 
 
