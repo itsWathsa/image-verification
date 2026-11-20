@@ -1,6 +1,6 @@
 # Detecting AI involvement
 
-The active application has one AI detector: Detectra-OpenFake, pinned to revision `c84565e` (full revision `c84565e5bf8969d95908e12844f551e77ae87105`). TruFor is a separate edit-localization model. It cannot establish that an edit was made with AI.
+The active application has one AI detector: Detectra-OpenFake, pinned to revision `c84565e` (full revision `c84565e5bf8969d95908e12844f551e77ae87105`).
 
 ## Target labels
 
@@ -55,6 +55,5 @@ Fine-tuning for AI-edited photographs requires a larger labeled set containing A
 
 Our current checkpoint is a quantized ONNX inference export. It is not trained by this app's ONNX Runtime adapter. A future fine-tuning run needs a compatible native training checkpoint and training pipeline; starting again from the author's base model is not the same as resuming our exact exported checkpoint. No Detectra weights were retrained in this update. Prefer measuring a candidate against this frozen baseline before replacing it; keep both missed AI edits and false alarms visible in the report.
 
-The unsuccessful CIFAKE CNN experiment was removed from the active source and its weights, code and results were archived locally under `evaluation-private/cifake-archive-2026-11-19/`. CIFAKE is a dataset of small real and fully generated images, not a dataset of camera photos edited using AI. Its cache remains available locally; it is not used by the website.
 
 Source and attribution: [pinned model card](https://huggingface.co/s-gehring/detectra-openfake/blob/c84565e5bf8969d95908e12844f551e77ae87105/README.md), [author training code](https://github.com/s-gehring/ai-watermark-addon/tree/main/tools/train). Model weights are CC-BY-NC-4.0, noncommercial. Detectra v3 by TensorFold; Community Forensics by Park and Owens; OpenFake by Livernoche and colleagues. Retain the upstream licensing and attribution when using or distributing the model.

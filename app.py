@@ -4,16 +4,15 @@ import csv
 import hashlib
 import io
 import json
-import sys
 import warnings
 from pathlib import Path
 
 import streamlit as st
-from PIL import Image, ImageOps, UnidentifiedImageError
+from PIL import Image, ImageOps
 
 MAX_FILE_BYTES = 20 * 1024 * 1024
 MAX_IMAGE_PIXELS = 20_000_000
-CHECKS = ("generation", "edits", "reference")
+CHECKS = ("generation", "reference")
 
 
 def camera_details(image):
@@ -58,13 +57,8 @@ def get_detector():
     return load_detector(download=True)
 
 
-@st.cache_resource
-def get_edit_detector():
-    from edit_detector import load_edit_detector
-    return load_edit_detector(download=True)
-
-
 def reset_for_image(data):
+    st.session_state.pop("edits", None)  # Discard results from the removed section.
     digest = hashlib.sha256(data).hexdigest() if data is not None else None
     if st.session_state.get("image_digest") != digest:
         for name in CHECKS:
@@ -108,8 +102,7 @@ def saved_result(name):
     if not state:
         return None
     if not state["ok"]:
-        prefix = "Edit analysis unavailable" if name == "edits" else "Analysis unavailable"
-        st.error(f"{prefix} - result: inconclusive. {state['error']}")
+        st.error(f"Analysis unavailable - result: inconclusive. {state['error']}")
         with st.expander(f"{name.capitalize()} diagnostic details"):
             st.code(state["diagnostic"], language="text")
         return None
@@ -171,52 +164,10 @@ def generation_panel(data):
         st.caption("First use downloads about 30 MB. Small edits, new generators, screenshots, compression and ordinary processing can still cause missed detections or false alarms.")
 
 
-def edit_panel(data):
-    st.subheader("Does this image show signs of editing?")
-    st.write("Check for inconsistencies and inspect areas that may have been modified.")
-    st.caption("This check targets local inconsistencies. Brightness, contrast and colour adjustments may leave no reliable local trace. If you have the original, Compare original also measures changes in overall brightness and contrast.")
-    if st.button("Analyze possible edits", key="analyze_edits"):
-        def analyze():
-            from edit_detector import analyze_edits
-            image, *_ = read_image(data, full_resolution=True)
-            with st.spinner("Loading TruFor and examining pixel inconsistencies..."):
-                return analyze_edits(image, get_edit_detector())
-        run_check("edits", analyze)
-    result = saved_result("edits")
-    if result is not None:
-        import numpy as np
-        from edit_detector import render_maps, SOURCE_REVISION
-        overlay, reliability = render_maps(result)
-        pure_map = Image.fromarray(np.round(result["map"] * 255).astype(np.uint8))
-        from conclusions import edit_conclusion
-        conclusion = edit_conclusion(result["score"])
-        st.info(conclusion)
-        with st.expander("Score details"):
-            st.metric("Editing anomaly score", f"{result['score']:.6f}")
-            st.caption("Exploratory bands: <=0.10 no strong evidence detected; >=0.90 possible editing; otherwise unable to determine. These are presentation rules, not validated edit/no-edit thresholds.")
-        first, second = st.columns(2)
-        first.image(pure_map, caption="Anomaly map: brighter = higher anomaly. Fixed 0-1 scale.")
-        second.image(reliability, caption="Reliability map: brighter = greater model-predicted reliability.")
-        with st.expander("View anomaly overlay"):
-            st.image(overlay, caption="Red/blue overlay blends with original colors; use the pure map for interpretation.")
-        st.caption(f"Analyzed size: {result['analyzed_size'][0]} x {result['analyzed_size'][1]} pixels. Maps apply to this resized version.")
-        st.caption("Highlighted regions are inspection aids. Compression and ordinary image processing can also cause inconsistencies.")
-        st.download_button("Download edit analysis (CSV)", csv_bytes({"model": "TruFor", "source_revision": SOURCE_REVISION,
-                           "anomaly_score": result["score"], "analyzed_width": result["analyzed_size"][0],
-                           "analyzed_height": result["analyzed_size"][1], "conclusion": conclusion, "notice": "Automated estimate; edits may be missed"}),
-                           file_name="edit_analysis.csv", mime="text/csv", key="download_edits")
-        st.download_button("Download anomaly map", png_bytes(pure_map), file_name="anomaly_map.png", mime="image/png")
-        st.download_button("Download reliability map", png_bytes(reliability), file_name="reliability_map.png", mime="image/png")
-    with st.expander("TruFor method and limitations"):
-        st.write("TruFor by Guillaro et al., GRIP-UNINA, CVPR 2023. Informational/nonprofit use only.")
-        st.write("CPU preview is limited to a 384-pixel longest edge. Resizing can erase small edits or introduce artifacts. Fully generated images, recompression and normal photo processing can cause anomalies. The displayed conclusions use exploratory bands; no edit/no-edit threshold has been validated.")
-        st.caption("First use downloads approximately 261 MB. A failed check is inconclusive; it does not affect other checks.")
-
-
 def reference_panel(data):
-    st.subheader("Compare with an original")
+    st.subheader("Check brightness, contrast and colour changes")
     st.write("The main upload is the version to examine. Supply its original here to inspect aligned pixel differences.")
-    st.caption("This is reference comparison, not single-image edit detection. It cannot verify that your reference is authentic.")
+    st.caption("An original is needed to measure these adjustments reliably. The comparison measures differences from the supplied reference; it cannot verify that reference's authenticity.")
     if st.checkbox("I have an original/reference image", key="has_reference"):
         reference = st.file_uploader("Upload the original/reference JPEG or PNG", type=["jpg", "jpeg", "png"], key="reference_upload")
         reference_data = reference.getvalue() if reference is not None else None
@@ -233,7 +184,8 @@ def reference_panel(data):
             result = saved_result("reference")
             if result is not None:
                 tone = result.get("tonal_comparison", {})
-                differences = result["changed_fraction"] > 0 or tone.get("notable_tonal_difference", False)
+                differences = (result["changed_fraction"] > 0 or tone.get("notable_tonal_difference", False)
+                               or tone.get("notable_colour_difference", False))
                 st.info("Differences detected compared with the supplied original." if differences else "No significant differences detected compared with the supplied original.")
                 first, second = st.columns(2)
                 first.image(result["aligned_reference"], caption="Aligned reference")
@@ -243,12 +195,15 @@ def reference_panel(data):
                     st.image(result["overlay"], caption="Red marks differences under fixed inspection settings, not confirmed edits.")
                 st.metric("Marked area within overlap (not an edit probability)", f"{result['changed_fraction']:.1%}")
                 if tone:
-                    st.write("**Brightness and contrast comparison**")
+                    st.write("**Brightness, contrast and colour comparison**")
                     first, second = st.columns(2)
                     first.metric("Average brightness difference", f"{tone['brightness_difference_levels']:+.1f} / 255")
                     ratio = tone["contrast_spread_ratio"]
                     second.metric("Contrast spread relative to original", f"{ratio:.2f}x" if ratio is not None else "Not measurable")
                     st.caption("Positive brightness values mean the examined image is brighter on average. A contrast ratio above 1 means a wider spread of light and dark tones. These measurements describe differences; they do not identify their cause.")
+                    if "mean_colour_difference_levels" in tone:
+                        st.metric("Average colour difference (brightness removed)", f"{tone['mean_colour_difference_levels']:.1f} levels")
+                        st.caption("Colour difference measures changes in RGB balance after removing each pixel's brightness. Values of 2 levels or more contribute to the difference summary, even when the region map is unmarked. Saturation, colour casts, lighting and compression can contribute.")
                 st.caption(f"Compared size: {result['analysis_size']}; overlap: {result['overlap_fraction']:.1%}.")
                 if result["alignment"].get("spatial_support") == "limited":
                     st.warning("Alignment is supported by a limited part of the image. Extrapolation may contribute to the differences.")
@@ -272,14 +227,11 @@ def combined_report(image_format, dimensions):
             report["checks"][name] = {"status": "unavailable", "diagnostic": state["diagnostic"]}
         else:
             result = dict(state["result"])
-            from conclusions import generation_conclusion, edit_conclusion
+            from conclusions import generation_conclusion
             if name == "generation":
                 result["conclusion"] = generation_conclusion(result["ai_score"])
                 result.pop("signal", None)
-            if name == "edits":
-                result = {key: result[key] for key in ("score", "analyzed_size") if key in result}
-                result["conclusion"] = edit_conclusion(result["score"])
-            elif name == "reference":
+            if name == "reference":
                 result = {key: result[key] for key in ("changed_fraction", "overlap_fraction", "analysis_size", "alignment", "inspection_settings", "assessment", "tonal_comparison") if key in result}
             status = "completed"
             report["checks"][name] = {"status": status, "result": result}
@@ -292,11 +244,10 @@ def main():
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
     st.markdown('<div class="workspace-label">IMAGE ANALYSIS WORKSPACE</div>', unsafe_allow_html=True)
     st.title("Image Verification")
-    st.write("Check AI use, inspect possible edits, or compare an image with its original.")
+    st.write("Check AI use or compare an image with its original.")
     st.markdown('''<div class="feature-grid">
       <div class="feature-card"><span class="number">01 / AI DETECTION</span><h3>Assess AI use</h3><p>Check the image for signs of AI generation or AI-assisted editing.</p></div>
-      <div class="feature-card"><span class="number">02 / EDIT INSPECTION</span><h3>Examine possible edits</h3><p>Inspect visual maps for areas that may have been modified.</p></div>
-      <div class="feature-card"><span class="number">03 / REFERENCE COMPARISON</span><h3>Compare an original</h3><p>Align two related images and review their differences.</p></div>
+      <div class="feature-card"><span class="number">02 / REFERENCE COMPARISON</span><h3>Compare an original</h3><p>Align two related images and review their differences.</p></div>
     </div>''', unsafe_allow_html=True)
     with st.container(border=True):
         st.subheader("Start with an image")
@@ -319,11 +270,10 @@ def main():
         return
     st.image(preview, caption="Preview; orientation metadata is applied when readable.", width=560)
     st.caption("Hosted uploads are processed on the hosting server. The app does not explicitly save uploaded images or send them to an external image inference service. Results are held in this session for the latest image; downloads remain visible after other checks run.")
-    tabs = st.tabs(["AI detection", "Edit detection", "Compare original", "File details"])
+    tabs = st.tabs(["AI detection", "Compare original", "File details"])
     with tabs[0]: generation_panel(data)
-    with tabs[1]: edit_panel(data)
-    with tabs[2]: reference_panel(data)
-    with tabs[3]:
+    with tabs[1]: reference_panel(data)
+    with tabs[2]:
         st.subheader("File details")
         st.write(f"**Format:** {image_format}")
         st.write(f"**Dimensions:** {dimensions[0]} x {dimensions[1]} pixels (stored image)")

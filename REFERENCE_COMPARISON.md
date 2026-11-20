@@ -2,7 +2,7 @@
 
 Upload the version to examine as the main image. In **Compare original**, select **I have an original/reference image**, upload the original, and click **Compare with original**.
 
-The comparison is independent of Detectra and TruFor. It does not infer the reference's authenticity, identify the editing software, or establish whether a depicted event happened. It is useful when a known original exists; it cannot solve the same problem from a single unknown image.
+The comparison is independent of Detectra. It does not infer the reference's authenticity, identify the editing software, or establish whether a depicted event happened. It is useful when a known original exists; it cannot solve the same problem from a single unknown image.
 
 ## Method
 
@@ -18,8 +18,14 @@ The comparison also measures display luma (0.299 R + 0.587 G + 0.114 B) over the
 
 An absolute mean shift of at least two levels or a contrast-spread change of at least 5% counts as a notable tonal difference for the comparison summary, even when no region exceeds the separate 32-level marking threshold. These are transparent inspection sensitivities, not learned forensic thresholds. Exposure, lighting, alignment and content changes can also affect these statistics; neither measurement identifies the software or proves an editing history. The combined JSON export retains these measurements.
 
-## Checks
+## Colour measurements
 
-Tests cover identical images, resized/JPEG-recompressed copies, a controlled splice, a small brightness adjustment below the region-marking threshold, flat references, overlap exclusion, unrelated or featureless inputs, and invalid transforms. These establish implementation behavior, not general forensic accuracy. Local input files and derived comparison maps remain excluded from Git.
+For each valid, blurred RGB pixel, subtract its display luma from all three channels. Compare these brightness-removed channel values between the aligned original and candidate, compute the root mean square difference across channels, then average over valid pixels. Averaging per-pixel distances keeps opposite colour shifts in different regions from cancelling. A uniform additive brightness change without clipping yields zero colour difference; brightness scaling or clipping can also change colour balance. This measurement is a display-RGB inspection metric, not a perceptual Delta E value or a model probability.
+
+An average colour difference of at least two levels contributes to the differences-detected summary independently of brightness, contrast and region marking. Mean signed red, green and blue shifts are also retained in the JSON report. Lighting, compression and imperfect alignment can affect the result. This sensitivity is an inspection setting, not a validated forensic threshold.
+
+## Verification
+
+Tests cover identical images, resized/JPEG-recompressed copies, a controlled splice, small brightness and colour adjustments below the region-marking threshold, contrast and saturation changes, opposite colour shifts, flat references, overlap exclusion, unrelated or featureless inputs, and invalid transforms. Streamlit tests check that a colour-only reference difference appears separately and survives JSON export. These establish implementation behavior, not general forensic accuracy. Local input files and derived comparison maps remain excluded from Git.
 
 Method reference: [OpenCV feature matching and homography](https://docs.opencv.org/4.13.0/d7/dff/tutorial_feature_homography.html).

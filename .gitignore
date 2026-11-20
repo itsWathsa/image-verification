@@ -1,12 +1,8 @@
 .venv/
+.models/
+data/
 __pycache__/
 *.pyc
-.models/
 .streamlit/secrets.toml
-cloud-upload.zip
-data/
-test results.txt
-evaluation-private/
 deployment-repo/
-.trufor-source/
-native-provenance-results.json
+evaluation-private/

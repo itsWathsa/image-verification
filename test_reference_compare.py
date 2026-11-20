@@ -29,6 +29,8 @@ class ReferenceComparisonTests(unittest.TestCase):
         self.assertIn("authenticity inconclusive", result["assessment"])
         self.assertFalse(np.asarray(result["mask"]).any())
         self.assertFalse(result["tonal_comparison"]["notable_tonal_difference"])
+        self.assertFalse(result["tonal_comparison"]["notable_colour_difference"])
+        self.assertEqual(result["tonal_comparison"]["mean_colour_difference_levels"], 0.)
 
     def test_brightness_shift_below_region_marking_threshold_is_reported(self):
         image = textured_image()
@@ -50,6 +52,43 @@ class ReferenceComparisonTests(unittest.TestCase):
         self.assertEqual(tone["brightness_difference_levels"], 0.)
         self.assertIsNone(tone["contrast_spread_ratio"])
         self.assertFalse(tone["notable_tonal_difference"])
+        self.assertEqual(tone["mean_colour_difference_levels"], 0.)
+
+    def test_colour_shift_without_brightness_or_contrast_change_is_detected(self):
+        original = textured_image()
+        pixels = np.asarray(original).astype(np.float32)
+        # Nearly equal luma: .299 * 8 + .587 * -4 = .044 levels.
+        candidate = Image.fromarray(np.clip(pixels + [8, -4, 0], 0, 255).astype(np.uint8))
+        result = compare_reference(original, candidate)
+        tone = result["tonal_comparison"]
+        self.assertEqual(result["changed_fraction"], 0.)
+        self.assertFalse(tone["notable_tonal_difference"])
+        self.assertTrue(tone["notable_colour_difference"])
+        self.assertGreater(tone["mean_colour_difference_levels"], 2.)
+        self.assertGreater(tone["mean_rgb_shift_levels"]["red"], 7.)
+        self.assertLess(tone["mean_rgb_shift_levels"]["green"], -3.)
+
+    def test_contrast_and_saturation_adjustments_are_measured(self):
+        original = textured_image()
+        contrast = compare_reference(original, ImageEnhance.Contrast(original).enhance(1.15))
+        self.assertTrue(contrast["tonal_comparison"]["notable_tonal_difference"])
+        self.assertGreater(contrast["tonal_comparison"]["contrast_spread_ratio"], 1.10)
+        saturation = compare_reference(original, ImageEnhance.Color(original).enhance(.5))
+        self.assertTrue(saturation["tonal_comparison"]["notable_colour_difference"])
+
+    def test_opposite_colour_shifts_do_not_cancel_and_brightness_is_removed(self):
+        original = np.full((20, 20, 3), 100, dtype=np.float32)
+        candidate = original.copy()
+        candidate[:10] += [8, -4, 0]
+        candidate[10:] -= [8, -4, 0]
+        valid = np.ones((20, 20), dtype=bool)
+        tone = tonal_summary(original, candidate, valid)
+        self.assertTrue(tone["notable_colour_difference"])
+        self.assertAlmostEqual(tone["mean_rgb_shift_levels"]["red"], 0.)
+        brightness_only = tonal_summary(original, original + 10, valid)
+        self.assertTrue(brightness_only["notable_tonal_difference"])
+        self.assertFalse(brightness_only["notable_colour_difference"])
+        self.assertAlmostEqual(brightness_only["mean_colour_difference_levels"], 0., places=4)
 
     def test_resize_and_jpeg_do_not_become_large_content_change(self):
         image = textured_image()

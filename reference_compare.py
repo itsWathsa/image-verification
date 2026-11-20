@@ -5,10 +5,12 @@ from PIL import Image
 
 
 def tonal_summary(reference, candidate, valid):
-    """Measure overlapping display-luma statistics, not editing probabilities."""
+    """Measure overlapping tone and colour differences, not edit probabilities."""
     weights = np.asarray([.299, .587, .114], dtype=np.float32)
-    first = (reference.astype(np.float32) @ weights)[valid]
-    second = (candidate.astype(np.float32) @ weights)[valid]
+    reference_rgb = reference.astype(np.float32)[valid]
+    candidate_rgb = candidate.astype(np.float32)[valid]
+    first = reference_rgb @ weights
+    second = candidate_rgb @ weights
     if first.size < 32:
         raise ValueError("Inconclusive: too little overlap for tonal comparison.")
     before, after = float(first.mean()), float(second.mean())
@@ -18,10 +20,19 @@ def tonal_summary(reference, candidate, valid):
     # not establish that software editing (rather than capture) caused them.
     brightness_shift = after - before
     notable = abs(brightness_shift) >= 2. or (contrast_ratio is not None and abs(contrast_ratio - 1) >= .05)
+    # Subtract each pixel's luma so a uniform additive brightness shift does
+    # not masquerade as a colour shift. Measure per-pixel displacement before
+    # averaging: opposite colour shifts in different regions must not cancel.
+    chroma_delta = (candidate_rgb - second[:, None]) - (reference_rgb - first[:, None])
+    colour_difference = float(np.sqrt(np.mean(chroma_delta ** 2, axis=1)).mean())
+    channel_shift = (candidate_rgb - reference_rgb).mean(axis=0)
     return {"reference_mean_luma": before, "candidate_mean_luma": after,
             "brightness_difference_levels": brightness_shift,
             "reference_luma_std": before_spread, "candidate_luma_std": after_spread,
             "contrast_spread_ratio": contrast_ratio, "notable_tonal_difference": bool(notable),
+            "mean_colour_difference_levels": colour_difference,
+            "mean_rgb_shift_levels": dict(zip(("red", "green", "blue"), map(float, channel_shift))),
+            "notable_colour_difference": bool(colour_difference >= 2.),
             "scale": "display luma 0 to 255, overlap only",
             "notice": "Pair differences, not a software-edit diagnosis; exposure, lighting and alignment can contribute."}
 
@@ -149,5 +160,6 @@ def compare_reference(original, candidate):
             "display_notes": "Gray borders were excluded. Marking settings are exploratory inspection aids, not validated edit-detection thresholds.",
             "inspection_settings": {"maximum_edge": 1000, "difference_threshold_0_to_255": 32,
                                     "minimum_component_pixels": 32, "gaussian_sigma": 1.,
-                                    "tonal_mean_shift_levels": 2., "tonal_contrast_relative_change": .05},
+                                    "tonal_mean_shift_levels": 2., "tonal_contrast_relative_change": .05,
+                                    "colour_mean_difference_levels": 2.},
             "alignment": diagnostics, "assessment": "reference differences only; authenticity inconclusive"}

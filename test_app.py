@@ -12,13 +12,12 @@ from detector import analyze_pixels, interpret_score, prepare_pixels, sigmoid
 
 
 class ImageTests(unittest.TestCase):
-    def test_model_download_cached_on_both_platforms(self):
-        for platform, download in (("linux", True), ("win32", True)):
-            get_detector.clear()
-            with patch("app.sys.platform", platform), patch("detector.load_detector", return_value=object()) as loader:
-                get_detector()
-                get_detector()
-                loader.assert_called_once_with(download=download)
+    def test_model_download_is_cached(self):
+        get_detector.clear()
+        with patch("detector.load_detector", return_value=object()) as loader:
+            get_detector()
+            get_detector()
+            loader.assert_called_once_with(download=True)
         get_detector.clear()
 
     def test_cloud_pixel_limit_before_decode(self):
@@ -87,7 +86,7 @@ class ImageTests(unittest.TestCase):
     def test_streamlit_analysis_and_failure(self):
         data = io.BytesIO()
         Image.new("RGB", (40, 30)).save(data, format="PNG")
-        failures = (None, RuntimeError("offline"), ImportError("cannot import name 'NP_SUPPORTED_MODULES'"), ModuleNotFoundError("missing package", name="torch"), ImportError("DLL load failed: An Application Control policy has blocked this file."))
+        failures = (None, RuntimeError("offline"), ImportError("cannot import name 'NP_SUPPORTED_MODULES'"), ModuleNotFoundError("missing package", name="onnxruntime"), ImportError("DLL load failed: An Application Control policy has blocked this file."))
         for failure in failures:
             with patch("streamlit.file_uploader", return_value=data), patch(
                 "detector.load_detector", return_value=object()
@@ -106,7 +105,7 @@ class ImageTests(unittest.TestCase):
                     elif isinstance(failure, ImportError) and not isinstance(failure, ModuleNotFoundError):
                         self.assertIn("version compatibility", app.error[0].value)
                     if isinstance(failure, ModuleNotFoundError):
-                        self.assertIn("module is unavailable: torch", app.error[0].value)
+                        self.assertIn("module is unavailable: onnxruntime", app.error[0].value)
                 else:
                     self.assertEqual(app.metric[0].value, "0.500000")
 
