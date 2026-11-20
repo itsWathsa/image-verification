@@ -1,6 +1,5 @@
 """Independent image evidence checks with per-upload session results."""
 
-import csv
 import hashlib
 import io
 import json
@@ -103,31 +102,14 @@ def saved_result(name):
         return None
     if not state["ok"]:
         st.error(f"Analysis unavailable - result: inconclusive. {state['error']}")
-        with st.expander(f"{name.capitalize()} diagnostic details"):
-            st.code(state["diagnostic"], language="text")
         return None
     return state["result"]
 
 
-def png_bytes(image):
-    stream = io.BytesIO()
-    image.save(stream, format="PNG")
-    return stream.getvalue()
-
-
-def csv_bytes(record):
-    stream = io.StringIO(newline="")
-    writer = csv.DictWriter(stream, fieldnames=list(record))
-    writer.writeheader()
-    writer.writerow(record)
-    return stream.getvalue()
-
-
 def generation_panel(data):
-    from detector import MODEL_ID, MODEL_REVISION, ANALYSIS_METHOD
+    from detector import ANALYSIS_METHOD
     st.subheader("Was AI used to create this image?")
     st.write("Check for AI involvement, including fully generated images and camera photos modified using AI.")
-    st.caption("Borderline results automatically receive closer inspection. Automated assessments may be incorrect.")
     if "generation" in st.session_state and st.session_state.get("generation_method") != ANALYSIS_METHOD:
         st.session_state.pop("generation", None)
     if st.button("Analyze image pixels", type="primary", key="analyze_generation"):
@@ -143,31 +125,13 @@ def generation_panel(data):
         from conclusions import generation_conclusion
         conclusion = generation_conclusion(result["ai_score"])
         st.info(conclusion)
-        with st.expander("Score details"):
-            st.metric("AI detection score", f"{result['ai_score']:.6f}")
-            st.caption("Model score, not a probability. Low scores do not rule out AI-assisted editing.")
-            if len(result.get("crop_scores", [])) > 1:
-                st.caption("A closer inspection was applied because the initial score was borderline. The final score is the highest of three center views.")
-            if "crop_scores" in result:
-                st.json({"method": result["analysis_method"], "initial_score": result["baseline_score"],
-                         "views": result["crop_scores"]})
-        st.download_button("Download model score (CSV)", csv_bytes({"ai_score": result["ai_score"], "model": MODEL_ID,
-                           "revision": MODEL_REVISION, "analysis_method": result.get("analysis_method", "single-center-crop"),
-                           "initial_score": result.get("baseline_score", result["ai_score"]),
-                           "crop_scores": json.dumps(result.get("crop_scores", [])),
-                           "conclusion": conclusion, "notice": "Automated estimate; may be incorrect"}),
-                           file_name="image_score.csv", mime="text/csv", key="download_generation")
-    with st.expander("Method and limitations"):
-        st.write(f"Detectra-OpenFake | {MODEL_ID} | revision {MODEL_REVISION}. Educational/noncommercial CC-BY-NC-4.0.")
-        st.write("Analysis starts with a 440-pixel shorter edge and a 384-pixel center crop. Initial raw scores from 0.50 up to 0.95 automatically trigger closer center views at 576 and 768 pixels; the highest score is retained. The same model is used for all views. Metadata is not used.")
-        st.caption("Scores are raw sigmoid outputs, without the author's Platt scaling. Exploratory answer bands remain <=0.10 and >=0.90. Closer inspection is experimental and produced false alarms on ordinary brightness and contrast changes during development. An AI-use signal cannot distinguish a fully generated image from an AI-edited photo or locate the edit.")
-        st.caption("First use downloads about 30 MB. Small edits, new generators, screenshots, compression and ordinary processing can still cause missed detections or false alarms.")
+        st.metric("AI detection score", f"{result['ai_score']:.6f}")
+        st.caption("Model score, not a probability. AI-assisted edits may be missed.")
 
 
 def reference_panel(data):
     st.subheader("Check brightness, contrast and colour changes")
-    st.write("The main upload is the version to examine. Supply its original here to inspect aligned pixel differences.")
-    st.caption("An original is needed to measure these adjustments reliably. The comparison measures differences from the supplied reference; it cannot verify that reference's authenticity.")
+    st.write("Upload the original to compare it with your image.")
     if st.checkbox("I have an original/reference image", key="has_reference"):
         reference = st.file_uploader("Upload the original/reference JPEG or PNG", type=["jpg", "jpeg", "png"], key="reference_upload")
         reference_data = reference.getvalue() if reference is not None else None
@@ -190,28 +154,18 @@ def reference_panel(data):
                 first, second = st.columns(2)
                 first.image(result["aligned_reference"], caption="Aligned reference")
                 second.image(result["candidate"], caption="Version being examined")
-                st.image(result["difference"], caption="Difference map: brighter = greater pixel difference; gray = excluded borders.")
                 with st.expander("View marked differences"):
-                    st.image(result["overlay"], caption="Red marks differences under fixed inspection settings, not confirmed edits.")
-                st.metric("Marked area within overlap (not an edit probability)", f"{result['changed_fraction']:.1%}")
+                    st.image(result["overlay"], caption="Highlighted differences; these are not confirmed edits.")
                 if tone:
-                    st.write("**Brightness, contrast and colour comparison**")
-                    first, second = st.columns(2)
-                    first.metric("Average brightness difference", f"{tone['brightness_difference_levels']:+.1f} / 255")
+                    first, second, third = st.columns(3)
+                    first.metric("Brightness change", f"{tone['brightness_difference_levels']:+.1f} / 255")
                     ratio = tone["contrast_spread_ratio"]
-                    second.metric("Contrast spread relative to original", f"{ratio:.2f}x" if ratio is not None else "Not measurable")
-                    st.caption("Positive brightness values mean the examined image is brighter on average. A contrast ratio above 1 means a wider spread of light and dark tones. These measurements describe differences; they do not identify their cause.")
+                    second.metric("Contrast relative to original", f"{ratio:.2f}x" if ratio is not None else "Not measurable")
                     if "mean_colour_difference_levels" in tone:
-                        st.metric("Average colour difference (brightness removed)", f"{tone['mean_colour_difference_levels']:.1f} levels")
-                        st.caption("Colour difference measures changes in RGB balance after removing each pixel's brightness. Values of 2 levels or more contribute to the difference summary, even when the region map is unmarked. Saturation, colour casts, lighting and compression can contribute.")
-                st.caption(f"Compared size: {result['analysis_size']}; overlap: {result['overlap_fraction']:.1%}.")
+                        third.metric("Colour difference", f"{tone['mean_colour_difference_levels']:.1f} levels")
                 if result["alignment"].get("spatial_support") == "limited":
-                    st.warning("Alignment is supported by a limited part of the image. Extrapolation may contribute to the differences.")
-                st.warning("Reference differences are not a calibrated editing estimate. Regeneration, lighting, compression and imperfect alignment may affect broad areas. No marked differences does not prove no edit occurred.")
-                with st.expander("Alignment and inspection details"):
-                    st.json({"alignment": result["alignment"], "inspection_settings": result.get("inspection_settings", {}),
-                             "tonal_comparison": tone})
-                st.download_button("Download reference difference overlay", png_bytes(result["overlay"]), file_name="reference_differences.png", mime="image/png")
+                    st.warning("Limited alignment: some differences may be caused by image positioning.")
+                st.caption("Lighting, compression and alignment can affect this comparison. Differences do not confirm editing.")
     else:
         reset_for_reference(None)
 
@@ -271,8 +225,8 @@ def main():
     except Exception as error:
         st.error(f"Cannot read this JPEG/PNG image: {error}")
         return
-    st.image(preview, caption="Preview; orientation metadata is applied when readable.", width=560)
-    st.caption("Hosted uploads are processed on the hosting server. The app does not explicitly save uploaded images or send them to an external image inference service. Results are held in this session for the latest image; downloads remain visible after other checks run.")
+    st.image(preview, caption="Image preview", width=560)
+    st.caption("Images are processed on the server. Results stay available for the current upload.")
     tabs = st.tabs(["AI detection", "Compare original", "File details"])
     with tabs[0]: generation_panel(data)
     with tabs[1]: reference_panel(data)
@@ -284,9 +238,8 @@ def main():
         st.write(f"**Camera model:** {model}")
         st.caption("EXIF fields can be absent or changed. They are not used by the detectors and do not prove origin.")
     st.divider()
-    st.download_button("Download all current results (JSON)", json.dumps(combined_report(image_format, dimensions), indent=2, ensure_ascii=False),
+    st.download_button("Download report (JSON)", json.dumps(combined_report(image_format, dimensions), indent=2, ensure_ascii=False),
                        file_name="image_evidence.json", mime="application/json", key="download_all")
-    st.caption("Your report includes completed results and identifies any checks that were not run or could not finish.")
 
 
 if __name__ == "__main__":
