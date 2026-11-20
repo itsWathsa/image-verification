@@ -1,4 +1,4 @@
-﻿import io
+import io
 from pathlib import Path
 import tempfile
 import unittest
@@ -42,6 +42,17 @@ class VideoTests(unittest.TestCase):
         self.assertIn("does not establish", report["conclusion"])
         self.assertEqual(progress[-1], 1)
 
+    def test_dci_4k_is_accepted_in_both_orientations(self):
+        for width, height in ((4096, 2160), (2160, 4096)):
+            with patch("video_analysis.cv2.VideoCapture") as factory, patch("video_analysis.analyze_pixels", return_value={"ai_score": .02}):
+                capture = factory.return_value
+                capture.isOpened.return_value = True
+                capture.get.side_effect = lambda key: {cv2.CAP_PROP_FPS: 24, cv2.CAP_PROP_FRAME_COUNT: 1, cv2.CAP_PROP_FRAME_WIDTH: width, cv2.CAP_PROP_FRAME_HEIGHT: height}[key]
+                capture.read.return_value = (True, np.zeros((height, width, 3), np.uint8))
+                report = analyze_video(b"video", object())["report"]
+                self.assertEqual(report["dimensions"], [width, height])
+                self.assertEqual(report["sample_count"], 1)
+
     def test_low_and_inconclusive_never_claim_authenticity(self):
         for score, phrase in ((.01, "does not confirm"), (.5, "Unable to determine")):
             with patch("video_analysis.analyze_pixels", return_value={"ai_score": score}):
@@ -61,7 +72,10 @@ class VideoTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "could not be decoded"):
                 analyze_video(b"video", object())
             capture.release.assert_called_once()
-        with patch("video_analysis.MAX_DURATION_SECONDS", 1), self.assertRaisesRegex(ValueError, "10 minutes"):
+        with patch("video_analysis.MAX_DURATION_SECONDS", 1), self.assertRaisesRegex(ValueError, "reports 2.0 seconds.*10-minute"):
+            analyze_video(clip(), object())
+
+        with patch("video_analysis.MAX_VIDEO_PIXELS", 100), self.assertRaisesRegex(ValueError, "64 x 64.*megapixel"):
             analyze_video(clip(), object())
 
     def test_video_ui_persists_and_new_upload_invalidates(self):

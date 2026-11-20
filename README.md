@@ -38,7 +38,7 @@ The Detectra-OpenFake weights are licensed CC-BY-NC-4.0 for noncommercial use; a
 
 ## Video screening
 
-Select **Video** in the media selector, upload an MP4, MOV, AVI or WebM and click **Analyze video**. Supported limits: 100 MiB, 10 minutes and 8.3 megapixels per frame (3840 x 2160). Container support depends on the installed decoder; H.264 MP4 is recommended if another file fails.
+Select **Video** in the media selector, upload an MP4, MOV, AVI or WebM and click **Analyze video**. Supported limits: 100 MiB, 10 minutes and 8.85 megapixels per frame (4096 x 2160, in either orientation). Container support depends on the installed decoder; H.264 MP4 is recommended if another file fails.
 
 The app checks up to 12 distinct, evenly spaced frames with the existing frozen image model. It displays the mean sampled-frame score, count scoring at least 0.90, and a timestamped frame table. The highest-scoring sampled frame can be inspected. JSON reports include the media hash, model revision, sampling method and every frame score. A high signal in even one frame is reported as a sampled-frame signal, never a whole-video authenticity verdict. Partial decode failures produce an unavailable result.
 

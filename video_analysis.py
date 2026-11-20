@@ -1,4 +1,4 @@
-﻿"""Bounded video-frame screening using the existing image model, not a video classifier."""
+"""Bounded video-frame screening using the existing image model, not a video classifier."""
 import hashlib
 import math
 from pathlib import Path
@@ -13,7 +13,7 @@ from detector import ANALYSIS_METHOD, MODEL_ID, MODEL_REVISION, analyze_pixels
 
 MAX_VIDEO_BYTES = 100 * 1024 * 1024
 MAX_DURATION_SECONDS = 600
-MAX_VIDEO_PIXELS = 3840 * 2160
+MAX_VIDEO_PIXELS = 4096 * 2160
 SAMPLE_COUNT = 12
 VIDEO_METHOD = "uniform-frame-screen-v1:" + ANALYSIS_METHOD
 
@@ -36,8 +36,20 @@ def analyze_video(data, session, progress=None):
             if not all(math.isfinite(v) and v > 0 for v in (fps, count, width, height)):
                 raise ValueError("This video's duration or dimensions could not be read.")
             duration = count / fps
-            if duration > MAX_DURATION_SECONDS or width * height > MAX_VIDEO_PIXELS:
-                raise ValueError("Use a video up to 10 minutes and 3840 x 2160 pixels.")
+            if duration > MAX_DURATION_SECONDS:
+                raise ValueError(
+                    f"The video decoder reports {duration:.1f} seconds "
+                    f"({int(count):,} frames at {fps:.3f} fps), exceeding the 10-minute limit. "
+                    "If your player shows a shorter clip, its timing metadata may be incompatible. "
+                    "Re-export it as an H.264 MP4 at a fixed frame rate and try again."
+                )
+            if width * height > MAX_VIDEO_PIXELS:
+                raise ValueError(
+                    f"The video resolution is {int(width)} x {int(height)} "
+                    f"({width * height / 1_000_000:.2f} megapixels per frame), exceeding the "
+                    "8.85-megapixel limit. Resize to 4096 x 2160 or smaller "
+                    "(2160 x 4096 for portrait video) and try again."
+                )
             indices = np.unique(np.linspace(0, int(count) - 1, min(SAMPLE_COUNT, int(count)), dtype=int))
             records, failed, preview = [], [], None
             started = time.monotonic()
@@ -52,7 +64,7 @@ def analyze_video(data, session, progress=None):
                     failed.append(int(index))
                     continue
                 if frame.shape[0] * frame.shape[1] > MAX_VIDEO_PIXELS:
-                    raise ValueError("Decoded video frames exceed the supported resolution.")
+                    raise ValueError(f"Decoded frame resolution is {frame.shape[1]} x {frame.shape[0]}, exceeding the 8.85-megapixel limit. Resize to 4K or smaller and try again.")
                 image = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
                 result = analyze_pixels(image, session)
                 score = float(result["ai_score"])
