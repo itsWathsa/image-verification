@@ -239,17 +239,12 @@ def combined_report(image_format, dimensions):
 
 
 def main():
-    st.set_page_config(page_title="AASL | Image Verification", page_icon=":material/travel:", layout="wide")
+    st.set_page_config(page_title="Image Verification", page_icon=":material/image_search:", layout="wide")
     css = Path(__file__).with_name("style.css").read_text(encoding="utf-8")
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
-    st.markdown('''<header class="brand-header">
-      <div class="brand-monogram">AASL<span>SRI LANKA</span></div>
-      <div class="brand-name">Airport &amp; Aviation Services<span>(Sri Lanka) (Private) Limited</span></div>
-      <div class="brand-product">IMAGE VERIFICATION<span>Image review workspace</span></div>
-    </header>
-    <section class="workspace-hero">
+    st.markdown('''<section class="workspace-hero">
       <div class="workspace-label">DIGITAL IMAGE REVIEW</div>
-      <h1>Clarity in every image.</h1>
+      <h1>Image Verification</h1>
       <p>Assess AI involvement and compare source images in one review workspace.</p>
       <div class="hero-meta"><span>01 &nbsp; Upload an image</span><span>02 &nbsp; Review the evidence</span><span>03 &nbsp; Export your results</span></div>
     </section>
@@ -265,7 +260,6 @@ def main():
     if uploaded is None:
         reset_for_image(None)
         st.caption("Once uploaded, your preview and analysis tools will appear here. An original image is optional.")
-        st.markdown('<div class="workspace-footer"><strong>AASL ? Image Verification</strong><span>Airport &amp; Aviation Services (Sri Lanka) (Private) Limited</span></div>', unsafe_allow_html=True)
         return
     data = uploaded.getvalue()
     reset_for_image(data)
@@ -293,8 +287,6 @@ def main():
     st.download_button("Download all current results (JSON)", json.dumps(combined_report(image_format, dimensions), indent=2, ensure_ascii=False),
                        file_name="image_evidence.json", mime="application/json", key="download_all")
     st.caption("Your report includes completed results and identifies any checks that were not run or could not finish.")
-    st.markdown('<div class="workspace-footer"><strong>AASL ? Image Verification</strong><span>Airport &amp; Aviation Services (Sri Lanka) (Private) Limited</span></div>', unsafe_allow_html=True)
-    st.markdown('<div class="workspace-footer">Image Verification · Independent checks. Clear assessments. Reviewable results.</div>', unsafe_allow_html=True)
 
 
 if __name__ == "__main__":
