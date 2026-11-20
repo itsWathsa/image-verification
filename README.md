@@ -1,6 +1,6 @@
-# Image verification
+# Image and video verification
 
-A Streamlit application with three sections:
+A Streamlit application for image review and experimental video-frame screening. The image mode has three sections:
 
 - **AI detection:** evaluates image pixels with the pinned Detectra-OpenFake model.
 - **Compare original:** compares an uploaded image with a supplied original/reference.
@@ -35,3 +35,13 @@ The app does not explicitly save uploaded images or send them to an external inf
 Runtime files are `app.py`, `detector.py`, `conclusions.py`, `reference_compare.py`, `style.css`, and `.streamlit/config.toml`. Evaluation utilities and their tests support the active AI pipeline. See [AI detection](AI_DETECTION.md), [reference comparison](REFERENCE_COMPARISON.md), and [deployment](DEPLOYMENT.md).
 
 The Detectra-OpenFake weights are licensed CC-BY-NC-4.0 for noncommercial use; attribution and the pinned source are documented in AI_DETECTION.md.
+
+## Video screening
+
+Select **Video** in the media selector, upload an MP4, MOV, AVI or WebM and click **Analyze video**. Supported limits: 100 MiB, 10 minutes and 8.3 megapixels per frame (3840 x 2160). Container support depends on the installed decoder; H.264 MP4 is recommended if another file fails.
+
+The app checks up to 12 distinct, evenly spaced frames with the existing frozen image model. It displays the mean sampled-frame score, count scoring at least 0.90, and a timestamped frame table. The highest-scoring sampled frame can be inspected. JSON reports include the media hash, model revision, sampling method and every frame score. A high signal in even one frame is reported as a sampled-frame signal, never a whole-video authenticity verdict. Partial decode failures produce an unavailable result.
+
+This is experimental visual screening, not a trained or validated video detector. Audio, motion, lip synchronisation and unsampled segments are not analysed. Compression and ordinary processing can cause false alarms. A low score does not establish authenticity. No video accuracy claim is available without evaluation on labelled real and generated videos.
+
+Uploads are temporarily written to a system temporary directory for decoding and removed when analysis exits, including handled failures. Decoded images are processed one at a time; only the highest-scoring thumbnail and numeric results remain in session state. No new model or Python dependency is required. Image uploads retain their separate 20 MiB limit.

@@ -192,20 +192,64 @@ def combined_report(image_format, dimensions):
     return report
 
 
+def video_panel():
+    from video_analysis import MAX_VIDEO_BYTES, VIDEO_METHOD, analyze_video
+    st.subheader("Video AI screening")
+    st.caption("MP4, MOV, AVI or WebM | up to 100 MB | 10 minutes | up to 4K")
+    st.caption("Experimental: checks up to 12 evenly spaced frames with the image model. Audio and motion are not analysed; video accuracy has not been validated.")
+    uploaded = st.file_uploader("Choose a video to examine", type=["mp4", "mov", "avi", "webm"], key="video_upload")
+    data = uploaded.getvalue() if uploaded is not None else None
+    digest = hashlib.sha256(data).hexdigest() if data else None
+    identity = (digest, VIDEO_METHOD)
+    if st.session_state.get("video_identity") != identity:
+        st.session_state.pop("video", None)
+        st.session_state["video_identity"] = identity
+    if data is None:
+        return
+    if len(data) > MAX_VIDEO_BYTES:
+        st.error("Choose a video no larger than 100 MB.")
+        return
+    if Path(uploaded.name).suffix.lower() in {".mp4", ".mov", ".webm"}:
+        st.video(data, format="video/" + ("quicktime" if uploaded.name.lower().endswith(".mov") else "webm" if uploaded.name.lower().endswith(".webm") else "mp4"))
+    if st.button("Analyze video", type="primary", key="analyze_video"):
+        bar = st.progress(0., text="Checking sampled frames...")
+        try:
+            run_check("video", lambda: analyze_video(data, get_detector(), progress=bar.progress))
+        finally:
+            bar.empty()
+    result = saved_result("video")
+    if result is not None:
+        report = result["report"]
+        st.info(report["conclusion"])
+        first, second = st.columns(2)
+        first.metric("Average sampled-frame score", f"{report['mean_frame_score']:.6f}")
+        second.metric("High-signal frames", f"{report['high_signal_frames']} / {report['sample_count']}")
+        st.caption("Scores are model signals, not the probability that a video is AI-generated.")
+        with st.expander("Review sampled frames"):
+            st.image(result["preview"], caption=f"Highest-scoring sampled frame at {result['preview_timestamp']:.2f}s")
+            rows = [f"| {frame['timestamp_seconds']:.2f} | {frame['ai_score']:.6f} |" for frame in report["frames"]]
+            st.markdown("| Time (s) | AI score |\n| --- | --- |\n" + "\n".join(rows))
+        st.download_button("Download video report (JSON)", json.dumps(report, indent=2), file_name="video_evidence.json", mime="application/json", key="download_video")
+
+
 def main():
-    st.set_page_config(page_title="Image Verification", page_icon=":material/image_search:", layout="wide")
+    st.set_page_config(page_title="Image & Video Verification", page_icon=":material/image_search:", layout="wide")
     css = Path(__file__).with_name("style.css").read_text(encoding="utf-8")
     st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
     st.markdown('''<section class="workspace-hero">
-      <div class="workspace-label">DIGITAL IMAGE REVIEW</div>
-      <h1>Image Verification</h1>
-      <p>Assess AI involvement and compare source images in one review workspace.</p>
-      <div class="hero-meta"><span>01 &nbsp; Upload an image</span><span>02 &nbsp; Review the evidence</span><span>03 &nbsp; Export your results</span></div>
+      <div class="workspace-label">DIGITAL MEDIA REVIEW</div>
+      <h1>Image &amp; Video Verification</h1>
+      <p>Review images, screen video frames for AI-like signals and compare source images.</p>
+      <div class="hero-meta"><span>01 &nbsp; Upload media</span><span>02 &nbsp; Review the evidence</span><span>03 &nbsp; Export your results</span></div>
     </section>
     <div class="feature-grid">
       <div class="feature-card"><span class="number">01 / AI DETECTION</span><h3>Assess AI involvement</h3><p>Review signals of AI generation or AI-assisted modification.</p></div>
       <div class="feature-card"><span class="number">02 / ORIGINAL COMPARISON</span><h3>Compare with the source</h3><p>Align an image with its original and inspect visual differences.</p></div>
     </div>''', unsafe_allow_html=True)
+    media = st.radio("Media type", ["Image", "Video"], horizontal=True, key="media_type")
+    if media == "Video":
+        video_panel()
+        return
     with st.container(border=True):
         st.subheader("Upload image for review")
         st.caption("JPEG or PNG · up to 20 MB · up to 20 megapixels")
